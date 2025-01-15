@@ -80,6 +80,26 @@ export function Coaches() {
     }
   };
 
+  const handleDelete = async (coachId) => {
+    try {
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this coach?"
+      );
+      if (!confirmed) return;
+
+      await axios.delete(`${PORT}/coaches/${coachId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      fetchCoaches(); // Refresh the coaches' list after deletion
+      alert("Coach deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting coach:", error);
+      alert("Failed to delete the coach. Please try again.");
+    }
+  };
+
   const handleViewDetails = async (coach) => {
     try {
       const response = await axios.get(`${PORT}/coaches/${coach.id}`, {
@@ -185,12 +205,18 @@ export function Coaches() {
                       </td>
                       <td>{coach.coachId}</td>
                       <td>{coach.email}</td>
-                      <td>
+                      <td className="space-x-2">
                         <button
                           className="btn btn-sm btn-outline"
                           onClick={() => handleViewDetails(coach)}
                         >
                           View details
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleDelete(coach.id)}
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>

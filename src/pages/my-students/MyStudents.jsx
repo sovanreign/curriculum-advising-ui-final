@@ -63,7 +63,7 @@ export function MyStudents() {
       yearFilter === "ALL" || student.yearLevel.toUpperCase() === yearFilter;
     const matchesProgram =
       programFilter === "ALL" ||
-      student.program.code.toUpperCase() === programFilter;
+      (student.program && student.program.code.toUpperCase() === programFilter);
     const matchesTrack =
       trackFilter === "ALL" ||
       (trackFilter === "ON_TRACK" && student.isOnTrack) ||
@@ -108,18 +108,7 @@ export function MyStudents() {
                     <option value="THIRD">3rd Year</option>
                     <option value="FOURTH">4th Year</option>
                   </select>
-                  <select
-                    className="select select-bordered"
-                    value={programFilter}
-                    onChange={(e) => setProgramFilter(e.target.value)}
-                  >
-                    <option value="ALL">All Programs</option>
-                    {programs.map((program) => (
-                      <option key={program.id} value={program.code}>
-                        {program.name}
-                      </option>
-                    ))}
-                  </select>
+
                   <select
                     className="select select-bordered"
                     value={trackFilter}

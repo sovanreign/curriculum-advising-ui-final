@@ -36,7 +36,7 @@ export function Sidebar() {
     COACH: [
       { name: "Profile", icon: FaCircleUser, path: "/profile" },
       { name: "Dashboard", icon: FaFileInvoice, path: "/dashboard" },
-      { name: "Curriculum", icon: FaFile, path: "/curriculum" },
+
       { name: "List of Students", icon: FaGraduationCap, path: "/my-students" },
       { name: "Summary", icon: FaFile, path: "/summary" },
       {
@@ -54,6 +54,7 @@ export function Sidebar() {
       { name: "Students", icon: FaGraduationCap, path: "/students" },
       { name: "Coaches", icon: FaUserGroup, path: "/coaches" },
       { name: "Manage Coaching", icon: FaUserGroup, path: "/manage-coaching" },
+      { name: "Curriculum", icon: FaFile, path: "/curriculum" },
       { name: "Programs", icon: FaFileInvoice, path: "/programs" },
       { name: "Notifications", icon: FaBell, path: "/notifications" },
       {

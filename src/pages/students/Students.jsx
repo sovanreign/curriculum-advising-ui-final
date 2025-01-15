@@ -88,6 +88,26 @@ export function Students() {
     }
   };
 
+  const handleDelete = async (studentId) => {
+    try {
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this student?"
+      );
+      if (!confirmed) return;
+
+      await axios.delete(`${PORT}/students/${studentId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      fetchStudents(); // Refresh the students' list after deletion
+      alert("Student deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      alert("Failed to delete the student. Please try again.");
+    }
+  };
+
   const handleViewDetails = async (student) => {
     try {
       const response = await axios.get(`${PORT}/students/${student.id}`, {
@@ -223,12 +243,18 @@ export function Students() {
                       </td>
                       <td>{student.studentId}</td>
                       <td>{student.email}</td>
-                      <td>
+                      <td className="flex space-x-2">
                         <button
                           className="btn btn-sm btn-outline"
                           onClick={() => handleViewDetails(student)}
                         >
                           View details
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleDelete(student.id)}
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>

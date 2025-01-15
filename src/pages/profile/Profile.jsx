@@ -67,7 +67,7 @@ const Profile = () => {
               <section className="mb-8">
                 <div className="flex items-center space-x-4">
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
-                    <i className="icon-user text-4xl text-gray-500" />
+                    <img src="/logo.png" alt="" />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold">

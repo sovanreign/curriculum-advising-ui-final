@@ -34,7 +34,7 @@ export function Curriculum() {
     fetchCourses();
   }, []);
 
-  const [activeTab, setActiveTab] = useState("List of Curriculum");
+  const [activeTab, setActiveTab] = useState("Courses");
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -173,27 +173,11 @@ export function Curriculum() {
               <div className="tabs mb-4">
                 <a
                   className={`tab tab-bordered ${
-                    activeTab === "List of Curriculum" ? "tab-active" : ""
-                  }`}
-                  onClick={() => handleTabChange("List of Curriculum")}
-                >
-                  List of Curriculum
-                </a>
-                <a
-                  className={`tab tab-bordered ${
                     activeTab === "Courses" ? "tab-active" : ""
                   }`}
                   onClick={() => handleTabChange("Courses")}
                 >
                   Courses
-                </a>
-                <a
-                  className={`tab tab-bordered ${
-                    activeTab === "Prescribe Subjects" ? "tab-active" : ""
-                  }`}
-                  onClick={() => handleTabChange("Prescribe Subjects")}
-                >
-                  Prescribe Subjects
                 </a>
               </div>
 
@@ -236,16 +220,6 @@ export function Curriculum() {
               {activeTab === "Courses" && (
                 <div>
                   <div className="flex gap-4 mb-4">
-                    <select
-                      className="select select-bordered"
-                      value={curriculumFilter}
-                      onChange={(e) => setCurriculumFilter(e.target.value)}
-                    >
-                      <option value="All">All Curriculums</option>
-                      <option value="1">BS Information Technology</option>
-                      <option value="2">BS Computer Science</option>
-                      {/* Add more options dynamically */}
-                    </select>
                     <select
                       className="select select-bordered"
                       value={yearFilter}
