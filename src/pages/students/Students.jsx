@@ -244,7 +244,10 @@ export function Students() {
                       </td>
                       <td>{student.studentId}</td>
                       <td>{student.email}</td>
-                      <td>{student.studentCourse[0].course.curriculum.code}</td>
+                      <td>
+                        {student.studentCourse[0]?.course.curriculum.code ||
+                          "None"}
+                      </td>
                       <td className="flex space-x-2">
                         <button
                           className="btn btn-sm btn-outline"

@@ -86,6 +86,48 @@ export function Curriculum() {
     fetchPrograms();
   }, []);
 
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
+  const [isUploadFileModalOpen, setIsUploadFileModalOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+
+  const onSubmitAddCourse = async (data) => {
+    try {
+      await axios.post(`${PORT}/courses`, data, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setIsAddCourseModalOpen(false);
+      fetchCourses();
+    } catch (error) {
+      console.error("Error adding course:", error);
+    }
+  };
+
+  const handleUploadCourses = async (e) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      console.error("No file selected");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+
+    try {
+      await axios.post(`${PORT}/courses/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setIsUploadFileModalOpen(false);
+      fetchCourses();
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
+  };
+
   const onSubmit = async (data) => {
     try {
       const payload = {
@@ -178,28 +220,45 @@ export function Curriculum() {
 
               {activeTab === "Courses" && (
                 <div>
-                  <div className="flex gap-4 mb-4">
-                    <select
-                      className="select select-bordered"
-                      value={yearFilter}
-                      onChange={(e) => setYearFilter(e.target.value)}
-                    >
-                      <option value="All">All Years</option>
-                      <option value="FIRST">First Year</option>
-                      <option value="SECOND">Second Year</option>
-                      <option value="THIRD">Third Year</option>
-                      <option value="FOURTH">Fourth Year</option>
-                    </select>
-                    <select
-                      className="select select-bordered"
-                      value={semFilter}
-                      onChange={(e) => setSemFilter(e.target.value)}
-                    >
-                      <option value="All">All Semesters</option>
-                      <option value="1">1st Semester</option>
-                      <option value="2">2nd Semester</option>
-                    </select>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-4 mb-4">
+                      <button
+                        className="btn btn-outline"
+                        onClick={() => setIsAddCourseModalOpen(true)}
+                      >
+                        Add Course
+                      </button>
+                      <button
+                        className="btn btn-outline"
+                        onClick={() => setIsUploadFileModalOpen(true)}
+                      >
+                        Upload Courses
+                      </button>
+                    </div>
+                    <div className="flex gap-4 mb-4">
+                      <select
+                        className="select select-bordered"
+                        value={yearFilter}
+                        onChange={(e) => setYearFilter(e.target.value)}
+                      >
+                        <option value="All">All Years</option>
+                        <option value="FIRST">First Year</option>
+                        <option value="SECOND">Second Year</option>
+                        <option value="THIRD">Third Year</option>
+                        <option value="FOURTH">Fourth Year</option>
+                      </select>
+                      <select
+                        className="select select-bordered"
+                        value={semFilter}
+                        onChange={(e) => setSemFilter(e.target.value)}
+                      >
+                        <option value="All">All Semesters</option>
+                        <option value="1">1st Semester</option>
+                        <option value="2">2nd Semester</option>
+                      </select>
+                    </div>
                   </div>
+
                   <div className="overflow-x-auto">
                     <table className="table w-full">
                       <thead>
@@ -230,6 +289,103 @@ export function Curriculum() {
           </div>
         </div>
       </div>
+
+      {isAddCourseModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Add Course</h3>
+            <form
+              onSubmit={handleSubmit(onSubmitAddCourse)}
+              className="mt-4 grid gap-4"
+            >
+              <div className="form-control">
+                <label className="label">Subject</label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  {...register("subject", { required: "Subject is required" })}
+                />
+                {errors.subject && (
+                  <span className="text-red-500 text-sm">
+                    {errors.subject.message}
+                  </span>
+                )}
+              </div>
+              <div className="form-control">
+                <label className="label">Description</label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  {...register("description", {
+                    required: "Description is required",
+                  })}
+                />
+                {errors.description && (
+                  <span className="text-red-500 text-sm">
+                    {errors.description.message}
+                  </span>
+                )}
+              </div>
+              <div className="form-control">
+                <label className="label">Units</label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  {...register("units", { required: "Units are required" })}
+                />
+                {errors.units && (
+                  <span className="text-red-500 text-sm">
+                    {errors.units.message}
+                  </span>
+                )}
+              </div>
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success">
+                  Submit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setIsAddCourseModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isUploadFileModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Upload Courses</h3>
+            <form onSubmit={handleUploadCourses} className="mt-4">
+              <div className="form-control">
+                <label className="label">Upload File</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="file-input file-input-bordered"
+                  onChange={(e) => setUploadFile(e.target.files[0])}
+                />
+              </div>
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success">
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setIsUploadFileModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="modal modal-open">
