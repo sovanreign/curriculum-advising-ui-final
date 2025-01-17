@@ -73,16 +73,23 @@ export function MySubjects() {
                   </tr>
                 </thead>
                 <tbody>
-                  {studentData.studentCourse.map((course) => (
-                    <tr key={course.id}>
-                      <td>{course.course.subject}</td>
-                      <td>{course.course.description}</td>
-                      <td>{course.course.units}</td>
-                      <td>{course.course.sem}</td>
-                      <td>{course.course.year}</td>
-                      <td>{course.remark}</td>
-                    </tr>
-                  ))}
+                  {studentData.studentCourse
+                    .filter(
+                      (course) => course.course.year === studentData.yearLevel
+                    ) // Filter courses based on year level
+                    .map((course) => (
+                      <tr key={course.id}>
+                        <td>{course.course.subject}</td>
+                        <td>{course.course.description}</td>
+                        <td>{course.course.units}</td>
+                        <td>{course.course.sem}</td>
+                        <td>{course.course.year}</td>
+                        <td>
+                          {course.remark === "HOLD" ? "_" : course.remark}
+                        </td>{" "}
+                        {/* Handle "HOLD" remark */}
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

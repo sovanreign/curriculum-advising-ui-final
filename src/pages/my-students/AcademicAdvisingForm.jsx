@@ -17,6 +17,9 @@ export function AcademicAdvisingForm() {
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
 
+  const [yearFilter, setYearFilter] = useState("All");
+  const [semFilter, setSemFilter] = useState("All");
+
   const navigate = useNavigate();
 
   const handleOpenPlanModal = () => {
@@ -116,19 +119,21 @@ export function AcademicAdvisingForm() {
                 </tr>
               </thead>
               <tbody>
-                {student.studentCourse.map((course) => (
-                  <tr key={course.id}>
-                    <td>{course.course.subject}</td>
-                    <td>{course.course.description}</td>
-                    <td>{course.course.units}</td>
-                    <td>{course.remark}</td>
-                  </tr>
-                ))}
+                {student.studentCourse
+                  .filter((course) => course.course.year === student.yearLevel) // Filter by year level
+                  .map((course) => (
+                    <tr key={course.id}>
+                      <td>{course.course.subject}</td>
+                      <td>{course.course.description}</td>
+                      <td>{course.course.units}</td>
+                      <td>{course.remark}</td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
 
             {/* Plan of Action */}
-            <h3 className="font-bold text-md mb-4">Plan of Actions</h3>
+            <h3 className="font-bold text-md mb-4">Subject Plan to Enroll</h3>
             <table className="table w-full mb-6">
               <thead>
                 <tr>
@@ -194,6 +199,30 @@ export function AcademicAdvisingForm() {
           <div className="modal-box w-11/12 max-w-5xl">
             <h3 className="font-bold text-lg">Add Subject to Plan</h3>
 
+            {/* Filters */}
+            <div className="flex gap-4 my-4">
+              <select
+                className="select select-bordered"
+                onChange={(e) => setYearFilter(e.target.value)}
+                defaultValue="All"
+              >
+                <option value="All">All Year Levels</option>
+                <option value="FIRST">First Year</option>
+                <option value="SECOND">Second Year</option>
+                <option value="THIRD">Third Year</option>
+                <option value="FOURTH">Fourth Year</option>
+              </select>
+              <select
+                className="select select-bordered"
+                onChange={(e) => setSemFilter(e.target.value)}
+                defaultValue="All"
+              >
+                <option value="All">All Semesters</option>
+                <option value="1">1st Semester</option>
+                <option value="2">2nd Semester</option>
+              </select>
+            </div>
+
             {/* List of Available Subjects */}
             <div className="overflow-x-auto my-4">
               <table className="table w-full">
@@ -208,23 +237,30 @@ export function AcademicAdvisingForm() {
                   </tr>
                 </thead>
                 <tbody>
-                  {availableSubjects.map((subject) => (
-                    <tr key={subject.id}>
-                      <td>{subject.subject}</td>
-                      <td>{subject.description}</td>
-                      <td>{subject.units}</td>
-                      <td>{subject.sem}</td>
-                      <td>{subject.year}</td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => setSelectedSubject(subject)}
-                        >
-                          Select
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {availableSubjects
+                    .filter(
+                      (subject) =>
+                        (yearFilter === "All" || subject.year === yearFilter) &&
+                        (semFilter === "All" ||
+                          subject.sem.toString() === semFilter)
+                    )
+                    .map((subject) => (
+                      <tr key={subject.id}>
+                        <td>{subject.subject}</td>
+                        <td>{subject.description}</td>
+                        <td>{subject.units}</td>
+                        <td>{subject.sem}</td>
+                        <td>{subject.year}</td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() => setSelectedSubject(subject)}
+                          >
+                            Select
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

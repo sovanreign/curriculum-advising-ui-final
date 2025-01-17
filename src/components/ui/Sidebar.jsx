@@ -22,7 +22,7 @@ export function Sidebar() {
         icon: FaUserGroup,
         path: "/curriculum-coach",
       },
-      { name: "Notifications", icon: FaBell, path: "/notifications" },
+      // { name: "Notifications", icon: FaBell, path: "/notifications" },
       {
         name: "Logout",
         icon: FaDoorOpen,
@@ -38,7 +38,7 @@ export function Sidebar() {
       { name: "Dashboard", icon: FaFileInvoice, path: "/dashboard" },
 
       { name: "List of Students", icon: FaGraduationCap, path: "/my-students" },
-      { name: "Summary", icon: FaFile, path: "/summary" },
+      // { name: "Summary", icon: FaFile, path: "/summary" },
       {
         name: "Logout",
         icon: FaDoorOpen,

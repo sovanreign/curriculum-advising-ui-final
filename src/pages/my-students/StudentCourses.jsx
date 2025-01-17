@@ -15,6 +15,10 @@ export function StudentCourses() {
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
   const [remark, setRemark] = useState("");
 
+  // Filters
+  const [semesterFilter, setSemesterFilter] = useState("ALL");
+  const [yearFilter, setYearFilter] = useState("ALL");
+
   // Fetch student and their subjects
   const fetchStudentDetails = async () => {
     try {
@@ -99,6 +103,17 @@ export function StudentCourses() {
     return <div>Loading...</div>;
   }
 
+  // Filter student courses
+  const filteredStudentCourses = student.studentCourse.filter((course) => {
+    const matchesSemester =
+      semesterFilter === "ALL" ||
+      course.course.sem.toString() === semesterFilter;
+    const matchesYear =
+      yearFilter === "ALL" || course.course.year.toUpperCase() === yearFilter;
+
+    return matchesSemester && matchesYear;
+  });
+
   return (
     <div className="">
       <Sidebar />
@@ -121,6 +136,30 @@ export function StudentCourses() {
                 <a className="tab tab-bordered">Academic Advising</a>
               </div>
 
+              {/* Filter Controls */}
+              <div className="flex gap-4 mb-4">
+                <select
+                  className="select select-bordered"
+                  value={semesterFilter}
+                  onChange={(e) => setSemesterFilter(e.target.value)}
+                >
+                  <option value="ALL">All Semesters</option>
+                  <option value="1">1st Semester</option>
+                  <option value="2">2nd Semester</option>
+                </select>
+                <select
+                  className="select select-bordered"
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                >
+                  <option value="ALL">All Years</option>
+                  <option value="FIRST">First Year</option>
+                  <option value="SECOND">Second Year</option>
+                  <option value="THIRD">Third Year</option>
+                  <option value="FOURTH">Fourth Year</option>
+                </select>
+              </div>
+
               {/* Student Course List */}
               <div className="overflow-x-auto">
                 <table className="table w-full">
@@ -136,14 +175,18 @@ export function StudentCourses() {
                     </tr>
                   </thead>
                   <tbody>
-                    {student.studentCourse.map((studentCourse) => (
+                    {filteredStudentCourses.map((studentCourse) => (
                       <tr key={studentCourse.id}>
                         <td>{studentCourse.course.subject}</td>
                         <td>{studentCourse.course.description}</td>
                         <td>{studentCourse.course.units}</td>
                         <td>{studentCourse.course.sem}</td>
                         <td>{studentCourse.noTake}</td>
-                        <td>{studentCourse.remark}</td>
+                        <td>
+                          {studentCourse.remark === "HOLD"
+                            ? "___"
+                            : studentCourse.remark}
+                        </td>
                         <td>
                           <button
                             className="btn btn-sm btn-outline"
