@@ -38,7 +38,7 @@ export function Sidebar() {
       { name: "Dashboard", icon: FaFileInvoice, path: "/dashboard" },
 
       { name: "List of Students", icon: FaGraduationCap, path: "/my-students" },
-      // { name: "Summary", icon: FaFile, path: "/summary" },
+      { name: "Summary", icon: FaFile, path: "/summary" },
       {
         name: "Logout",
         icon: FaDoorOpen,

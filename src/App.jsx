@@ -14,6 +14,8 @@ import { AcademicAdvisingForm } from "./pages/my-students/AcademicAdvisingForm";
 import { MySubjects } from "./pages/subjects/MyCourses";
 import Program from "./pages/programs/Program";
 import CurriculumCoachesList from "./pages/programs/CurriculumCoachesList";
+import Summary from "./pages/summary/Summary";
+import SummaryDetails from "./pages/summary/SummaryDetails";
 
 const App = () => {
   return (
@@ -42,6 +44,9 @@ const App = () => {
             path="/programs/coach-list"
             element={<CurriculumCoachesList />}
           />
+
+          <Route path="/summary" element={<Summary />} />
+          <Route path="/summary/:id" element={<SummaryDetails />} />
         </Routes>
       </div>
     </Router>

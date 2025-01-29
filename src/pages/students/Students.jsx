@@ -159,6 +159,21 @@ export function Students() {
     fetchStudents();
   }, [searchQuery, yearLevel, program]);
 
+  const formatYearLevel = (yearLevel) => {
+    switch (yearLevel) {
+      case "FIRST":
+        return "1st Year";
+      case "SECOND":
+        return "2nd Year";
+      case "THIRD":
+        return "3rd Year";
+      case "FOURTH":
+        return "4th Year";
+      default:
+        return "Unknown";
+    }
+  };
+
   return (
     <div className="">
       <Sidebar />
@@ -232,6 +247,8 @@ export function Students() {
                     <th>Student Name</th>
                     <th>Student No.</th>
                     <th>Email</th>
+                    <th>Year Level</th>
+                    <th>Program</th>
                     <th>Curriculum</th>
                     <th></th>
                   </tr>
@@ -244,6 +261,8 @@ export function Students() {
                       </td>
                       <td>{student.studentId}</td>
                       <td>{student.email}</td>
+                      <td>{formatYearLevel(student.yearLevel)}</td>
+                      <td>{student.program.code}</td>
                       <td>
                         {student.studentCourse[0]?.course.curriculum.code ||
                           "None"}
