@@ -3,9 +3,16 @@ import { Navbar } from "../../components/ui/Navbar";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { PORT } from "../../utils/constants";
+import { useNavigate, useParams } from "react-router-dom";
 
 const CurriculumCoachesList = () => {
+  const { id } = useParams(); // Get programId from URL params
+  const [coaches, setCoaches] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredCoaches, setFilteredCoaches] = useState([]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPrograms = async () => {
@@ -15,15 +22,47 @@ const CurriculumCoachesList = () => {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
         });
-
         setPrograms(response.data);
       } catch (error) {
-        console.error("Error fetching profile data:", error);
+        console.error("Error fetching programs:", error);
       }
     };
 
     fetchPrograms();
   }, []);
+
+  useEffect(() => {
+    const fetchCoaches = async () => {
+      try {
+        const response = await axios.get(`${PORT}/coaches`, {
+          params: { filterByProgram: id }, // Pass id as a query parameter
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        });
+
+        setCoaches(response.data);
+        setFilteredCoaches(response.data); // Set default filtered coaches
+      } catch (error) {
+        console.error("Error fetching coaches:", error);
+      }
+    };
+
+    if (id) {
+      fetchCoaches();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const results = coaches.filter(
+      (coach) =>
+        coach.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        coach.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        coach.coachId.toString().includes(searchQuery)
+    );
+    setFilteredCoaches(results);
+  }, [searchQuery, coaches]);
+
   return (
     <div>
       <Sidebar />
@@ -43,12 +82,12 @@ const CurriculumCoachesList = () => {
                     type="text"
                     placeholder="Search coaches here..."
                     className="input input-bordered w-72"
-                    // value={searchQuery}
-                    // onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
-                <div className="flex space-x-4">
+                {/* <div className="flex space-x-4">
                   <select
                     className="select select-bordered"
                     // value={yearLevel}
@@ -72,7 +111,7 @@ const CurriculumCoachesList = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
               </div>
 
               <table className="table w-full">
@@ -85,23 +124,33 @@ const CurriculumCoachesList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* {students.map((student) => (
-                    <tr key={student.id}>
-                      <td>
-                        {student.firstName} {student.lastName}
-                      </td>
-                      <td>{student.studentId}</td>
-                      <td>{student.email}</td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => handleViewDetails(student)}
-                        >
-                          View details
-                        </button>
+                  {filteredCoaches.length > 0 ? (
+                    filteredCoaches.map((coach) => (
+                      <tr key={coach.id}>
+                        <td>
+                          {coach.firstName} {coach.lastName}
+                        </td>
+                        <td>{coach.coachId}</td>
+                        <td>{coach.email}</td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() =>
+                              navigate(`/programs/coach-details/${coach.id}`)
+                            }
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="3" className="text-center text-gray-500">
+                        No coaches found for this program.
                       </td>
                     </tr>
-                  ))} */}
+                  )}
                 </tbody>
               </table>
             </div>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { Navbar } from "../../components/ui/Navbar";
 import { Sidebar } from "../../components/ui/Sidebar";
 import { PORT } from "../../utils/constants";
 
-export function StudentCourses() {
+export function StudentSubjects() {
   const { id } = useParams(); // Get student ID from the URL
   const [student, setStudent] = useState(null);
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
@@ -18,6 +18,8 @@ export function StudentCourses() {
   // Filters
   const [semesterFilter, setSemesterFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("FIRST");
+
+  const navigate = useNavigate();
 
   // Fetch student and their subjects
   const fetchStudentDetails = async () => {
@@ -171,12 +173,20 @@ export function StudentCourses() {
                       <th>Sem</th>
                       <th>No. of Takes</th>
                       <th>Remarks</th>
-                      <th>Action</th>
+                      {/* <th>Action</th> */}
                     </tr>
                   </thead>
                   <tbody>
                     {filteredStudentCourses.map((studentCourse) => (
-                      <tr key={studentCourse.id}>
+                      <tr
+                        key={studentCourse.id}
+                        // className="cursor-pointer hover:bg-red-100"
+                        // onClick={() =>
+                        //   navigate(
+                        //     `/programs/course/${studentCourse.course.id}`
+                        //   )
+                        // }
+                      >
                         <td>{studentCourse.course.subject}</td>
                         <td>{studentCourse.course.description}</td>
                         <td>{studentCourse.course.units}</td>
@@ -187,7 +197,7 @@ export function StudentCourses() {
                             ? "___"
                             : studentCourse.remark}
                         </td>
-                        <td>
+                        {/* <td>
                           <button
                             className="btn btn-sm btn-outline"
                             onClick={() => {
@@ -198,7 +208,7 @@ export function StudentCourses() {
                           >
                             Provide Grade
                           </button>
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>

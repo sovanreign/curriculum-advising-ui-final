@@ -42,13 +42,7 @@ const Program = () => {
               </h1>
               <section className="flex justify-center items-center flex-wrap gap-x-10 gap-y-5 mt-3">
                 {programs.map((data) => {
-                  return (
-                    <ProgramCard
-                      key={data.id}
-                      name={data.name}
-                      code={data.code}
-                    />
-                  );
+                  return <ProgramCard key={data.id} program={data} />;
                 })}
               </section>
             </div>
