@@ -143,6 +143,32 @@ export function Coaches() {
     }
   };
 
+  // CSV download handler for coaches
+  const handleDownloadCsv = () => {
+    // Build CSV header
+    let csv = "Coach Name,Coach ID,Email\n";
+
+    // Append each coach as a CSV row
+    coaches.forEach((coach) => {
+      const coachName = `${coach.firstName} ${coach.lastName}`;
+      const coachId = coach.coachId;
+      const email = coach.email;
+
+      csv += `"${coachName}","${coachId}","${email}"\n`;
+    });
+
+    // Create a Blob from the CSV string and create a temporary download link
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "coaches.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     fetchPrograms();
   }, []);
@@ -184,6 +210,14 @@ export function Coaches() {
                     onClick={() => setIsUploadModalOpen(true)}
                   >
                     Upload Coaches
+                  </button>
+                </div>
+                <div>
+                  <button
+                    className="btn btn-xs bg-gray-900 text-white hover:bg-gray-800"
+                    onClick={handleDownloadCsv}
+                  >
+                    Download as csv
                   </button>
                 </div>
               </div>

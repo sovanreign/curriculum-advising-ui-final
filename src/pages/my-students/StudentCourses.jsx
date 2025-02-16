@@ -8,18 +8,31 @@ import { PORT } from "../../utils/constants";
 export function StudentCourses() {
   const { id } = useParams(); // Get student ID from the URL
   const [student, setStudent] = useState(null);
+
+  // For adding courses
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
-  const [isProvideGradeModalOpen, setIsProvideGradeModalOpen] = useState(false);
-  const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
+
+  // For providing grades
+  const [isProvideGradeModalOpen, setIsProvideGradeModalOpen] = useState(false);
   const [selectedStudentCourse, setSelectedStudentCourse] = useState(null);
   const [remark, setRemark] = useState("");
 
-  // Filters
+  // For all courses in the system
+  const [courses, setCourses] = useState([]);
+
+  // Filters for the Student Evaluation table
   const [semesterFilter, setSemesterFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("FIRST");
 
-  // Fetch student and their subjects
+  // **New**: Search terms
+  const [evaluationSearchTerm, setEvaluationSearchTerm] = useState("");
+  const [transcriptSearchTerm, setTranscriptSearchTerm] = useState("");
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState("Student Evaluation");
+
+  // Fetch student
   const fetchStudentDetails = async () => {
     try {
       const response = await axios.get(`${PORT}/students/${id}`, {
@@ -33,7 +46,7 @@ export function StudentCourses() {
     }
   };
 
-  // Fetch available courses
+  // Fetch all courses
   const fetchCourses = async () => {
     try {
       const response = await axios.get(`${PORT}/courses`, {
@@ -47,6 +60,7 @@ export function StudentCourses() {
     }
   };
 
+  // Add a course to the student
   const addCourseToStudent = async () => {
     try {
       const payload = {
@@ -62,13 +76,15 @@ export function StudentCourses() {
 
       setIsAddCourseModalOpen(false);
       setSelectedCourseId("");
-      fetchStudentDetails(); // Refresh student courses
+      fetchStudentDetails(); // Refresh student data
     } catch (error) {
       console.error("Error adding course to student:", error);
     }
   };
 
+  // Provide a grade/remark
   const provideGrade = async () => {
+    if (!selectedStudentCourse) return;
     try {
       const payload = {
         ...selectedStudentCourse,
@@ -103,21 +119,52 @@ export function StudentCourses() {
     return <div>Loading...</div>;
   }
 
-  // Filter student courses
-  const filteredStudentCourses = student.studentCourse.filter((course) => {
+  // ---------------------------------------------------
+  // STUDENT EVALUATION FILTERING
+  // ---------------------------------------------------
+  const filteredStudentCourses = student.studentCourse.filter((sc) => {
     const matchesSemester =
-      semesterFilter === "ALL" ||
-      course.course.sem.toString() === semesterFilter;
-    const matchesYear =
-      yearFilter === "ALL" || course.course.year.toUpperCase() === yearFilter;
+      semesterFilter === "ALL" || sc.course.sem.toString() === semesterFilter;
 
-    return matchesSemester && matchesYear;
+    const matchesYear =
+      yearFilter === "ALL" || sc.course.year.toUpperCase() === yearFilter;
+
+    // **New**: Matches search on subject or description
+    const lowerSearch = evaluationSearchTerm.toLowerCase();
+    const matchesSearch =
+      evaluationSearchTerm === "" ||
+      sc.course.subject.toLowerCase().includes(lowerSearch) ||
+      sc.course.description.toLowerCase().includes(lowerSearch);
+
+    return matchesSemester && matchesYear && matchesSearch;
   });
+
+  // ---------------------------------------------------
+  // TRANSCRIPT OF RECORDS FILTERING
+  // ---------------------------------------------------
+  // Example assumption: course.programId === student.programId
+  // If you use curriculumId, adapt accordingly.
+  const transcriptCourses = courses.filter((course) => {
+    if (course.programId !== student.programId) return false;
+
+    // **New**: Filter by subject or description
+    const lowerSearch = transcriptSearchTerm.toLowerCase();
+    const matchesSearch =
+      transcriptSearchTerm === "" ||
+      course.subject.toLowerCase().includes(lowerSearch) ||
+      course.description.toLowerCase().includes(lowerSearch);
+
+    return matchesSearch;
+  });
+
+  // We'll map over these transcriptCourses and see if the student
+  // has a record for each (to show remarks, no. of takes, etc.).
+  // If not, we can show "Not Taken" or another placeholder.
+  // ---------------------------------------------------
 
   return (
     <div className="">
       <Sidebar />
-
       <div className="ml-60 bg-base-200">
         <Navbar />
 
@@ -128,98 +175,171 @@ export function StudentCourses() {
 
           <div className="card bg-white w-full shadow-xl">
             <div className="card-body">
-              {/* Tab Navigation */}
+              {/* Tabs */}
               <div className="tabs mb-4">
-                <a className="tab tab-bordered tab-active">
+                <a
+                  className={`tab tab-bordered ${
+                    activeTab === "Student Evaluation" ? "tab-active" : ""
+                  }`}
+                  onClick={() => setActiveTab("Student Evaluation")}
+                >
                   Student Evaluation
                 </a>
-                <a className="tab tab-bordered">Academic Advising</a>
+                <a
+                  className={`tab tab-bordered ${
+                    activeTab === "Transcript of Records" ? "tab-active" : ""
+                  }`}
+                  onClick={() => setActiveTab("Transcript of Records")}
+                >
+                  Transcript of Records
+                </a>
               </div>
 
-              {/* Filter Controls */}
-              <div className="flex gap-4 mb-4">
-                <select
-                  className="select select-bordered"
-                  value={semesterFilter}
-                  onChange={(e) => setSemesterFilter(e.target.value)}
-                >
-                  <option value="ALL">All Semesters</option>
-                  <option value="1">1st Semester</option>
-                  <option value="2">2nd Semester</option>
-                </select>
-                <select
-                  className="select select-bordered"
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value)}
-                >
-                  <option value="ALL">All Years</option>
-                  <option value="FIRST">First Year</option>
-                  <option value="SECOND">Second Year</option>
-                  <option value="THIRD">Third Year</option>
-                  <option value="FOURTH">Fourth Year</option>
-                </select>
-              </div>
+              {/* STUDENT EVALUATION TAB */}
+              {activeTab === "Student Evaluation" && (
+                <>
+                  {/* Filter Controls */}
+                  <div className="flex gap-4 mb-4">
+                    {/* Search by subject/description */}
+                    {/* <input
+                      type="text"
+                      className="input input-bordered"
+                      placeholder="Search subject or description..."
+                      value={evaluationSearchTerm}
+                      onChange={(e) => setEvaluationSearchTerm(e.target.value)}
+                    /> */}
 
-              {/* Student Course List */}
-              <div className="overflow-x-auto">
-                <table className="table w-full">
-                  <thead>
-                    <tr>
-                      <th>Subject</th>
-                      <th>Description</th>
-                      <th>Units</th>
-                      <th>Sem</th>
-                      <th>No. of Takes</th>
-                      <th>Remarks</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudentCourses.map((studentCourse) => (
-                      <tr key={studentCourse.id}>
-                        <td>{studentCourse.course.subject}</td>
-                        <td>{studentCourse.course.description}</td>
-                        <td>{studentCourse.course.units}</td>
-                        <td>{studentCourse.course.sem}</td>
-                        <td>{studentCourse.noTake}</td>
-                        <td>
-                          {studentCourse.remark === "HOLD"
-                            ? "___"
-                            : studentCourse.remark}
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-outline"
-                            onClick={() => {
-                              setSelectedStudentCourse(studentCourse);
-                              setRemark(studentCourse.remark || "");
-                              setIsProvideGradeModalOpen(true);
-                            }}
-                          >
-                            Provide Grade
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    <select
+                      className="select select-bordered"
+                      value={semesterFilter}
+                      onChange={(e) => setSemesterFilter(e.target.value)}
+                    >
+                      <option value="ALL">All Semesters</option>
+                      <option value="1">1st Semester</option>
+                      <option value="2">2nd Semester</option>
+                    </select>
+                    <select
+                      className="select select-bordered"
+                      value={yearFilter}
+                      onChange={(e) => setYearFilter(e.target.value)}
+                    >
+                      <option value="ALL">All Years</option>
+                      <option value="FIRST">First Year</option>
+                      <option value="SECOND">Second Year</option>
+                      <option value="THIRD">Third Year</option>
+                      <option value="FOURTH">Fourth Year</option>
+                    </select>
+                  </div>
 
-              {/* Footer Buttons */}
-              <div className="flex justify-between items-center mt-4">
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => window.history.back()}
-                >
-                  Close
-                </button>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setIsAddCourseModalOpen(true)}
-                >
-                  Add Course
-                </button>
-              </div>
+                  {/* Student Course List */}
+                  <div className="overflow-x-auto">
+                    <table className="table w-full">
+                      <thead>
+                        <tr>
+                          <th>Subject</th>
+                          <th>Description</th>
+                          <th>Units</th>
+                          <th>Sem</th>
+                          <th>No. of Takes</th>
+                          <th>Remarks</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStudentCourses.map((sc) => (
+                          <tr key={sc.id}>
+                            <td>{sc.course.subject}</td>
+                            <td>{sc.course.description}</td>
+                            <td>{sc.course.units}</td>
+                            <td>{sc.course.sem}</td>
+                            <td>{sc.noTake}</td>
+                            <td>{sc.remark === "HOLD" ? "___" : sc.remark}</td>
+                            <td>
+                              <button
+                                className="btn btn-sm btn-outline"
+                                onClick={() => {
+                                  setSelectedStudentCourse(sc);
+                                  setRemark(sc.remark || "");
+                                  setIsProvideGradeModalOpen(true);
+                                }}
+                              >
+                                Provide Grade
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Footer Buttons */}
+                  <div className="flex justify-between items-center mt-4">
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => window.history.back()}
+                    >
+                      Close
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => setIsAddCourseModalOpen(true)}
+                    >
+                      Add Course
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* TRANSCRIPT OF RECORDS TAB */}
+              {activeTab === "Transcript of Records" && (
+                <>
+                  {/* Search by subject/description for Transcript */}
+                  <div className="flex gap-4 mb-4">
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      placeholder="Search subject or description..."
+                      value={transcriptSearchTerm}
+                      onChange={(e) => setTranscriptSearchTerm(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="table w-full">
+                      <thead>
+                        <tr>
+                          <th>Subject</th>
+                          <th>Description</th>
+                          <th>Units</th>
+                          <th>Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transcriptCourses.map((course) => {
+                          // Check if the student has a record for this course
+                          const studentCourse = student.studentCourse.find(
+                            (sc) => sc.courseId === course.id
+                          );
+                          return (
+                            <tr key={course.id}>
+                              <td>{course.subject}</td>
+                              <td>{course.description}</td>
+                              <td>{course.units}</td>
+                              <td>
+                                {studentCourse
+                                  ? studentCourse.remark === "HOLD"
+                                    ? "IP"
+                                    : studentCourse.remark
+                                  : "Not Taken"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

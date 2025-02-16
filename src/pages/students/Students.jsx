@@ -151,6 +151,37 @@ export function Students() {
     }
   };
 
+  // CSV download handler
+  const handleDownloadCsv = () => {
+    // Build CSV header
+    let csv = "Student Name,Student No.,Email,Year Level,Program,Curriculum\n";
+
+    // Append each student as a CSV row
+    students.forEach((student) => {
+      const studentName = `${student.firstName} ${student.lastName}`;
+      const studentNo = student.studentId;
+      const email = student.email;
+      const year = formatYearLevel(student.yearLevel);
+      const course = student.program.code;
+      const curriculum =
+        student.studentCourse[0]?.course.curriculum.code || "None";
+
+      // Wrap fields in quotes and separate by commas
+      csv += `"${studentName}","${studentNo}","${email}","${year}","${course}","${curriculum}"\n`;
+    });
+
+    // Create a Blob from the CSV string and create a temporary download link
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "students.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     fetchPrograms();
   }, []);
@@ -237,6 +268,14 @@ export function Students() {
                     onClick={() => setIsUploadModalOpen(true)}
                   >
                     Upload Students
+                  </button>
+                </div>
+                <div>
+                  <button
+                    className="btn btn-xs bg-gray-900 text-white hover:bg-gray-800"
+                    onClick={handleDownloadCsv}
+                  >
+                    Download as csv
                   </button>
                 </div>
               </div>

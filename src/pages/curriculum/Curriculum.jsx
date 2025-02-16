@@ -149,6 +149,29 @@ export function Curriculum() {
     }
   };
 
+  // CSV download handler for courses
+  const handleDownloadCoursesCsv = () => {
+    // Build CSV header for courses
+    let csv = "Subject,Description,Units,Sem,Year\n";
+
+    // Append each filtered course as a CSV row
+    filteredCourses.forEach((course) => {
+      // Wrap each field in quotes to prevent CSV issues
+      csv += `"${course.subject}","${course.description}","${course.units}","${course.sem}","${course.year}"\n`;
+    });
+
+    // Create a Blob from the CSV string and trigger download
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "courses.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -233,6 +256,12 @@ export function Curriculum() {
                         onClick={() => setIsUploadFileModalOpen(true)}
                       >
                         Upload Courses
+                      </button>
+                      <button
+                        className="btn btn-outline"
+                        onClick={handleDownloadCoursesCsv}
+                      >
+                        Download as csv
                       </button>
                     </div>
                     <div className="flex gap-4 mb-4">
