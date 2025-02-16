@@ -22,7 +22,7 @@ export function StudentCourses() {
   const [courses, setCourses] = useState([]);
 
   // Filters for the Student Evaluation table
-  const [semesterFilter, setSemesterFilter] = useState("ALL");
+  const [semesterFilter, setSemesterFilter] = useState("1");
   const [yearFilter, setYearFilter] = useState("FIRST");
 
   // **New**: Search terms

@@ -1,33 +1,30 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Navbar } from "../../components/ui/Navbar";
 import { Sidebar } from "../../components/ui/Sidebar";
 import { PORT } from "../../utils/constants";
-import { useNavigate } from "react-router-dom";
 
 export function AcademicAdvisingForm() {
   const { id } = useParams(); // Get student ID from URL
   const [student, setStudent] = useState(null);
+  const [existingAcadForm, setExistingAcadForm] = useState(null);
   const [coachRemarks, setCoachRemarks] = useState("");
-  const [planOfAction, setPlanOfAction] = useState([]);
+  const [planOfAction, setPlanOfAction] = useState([]); // Subject plan (array of subjects)
   const [isLoading, setIsLoading] = useState(true);
 
+  // Modal states for "Add Subject to Plan"
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
 
-  const [yearFilter, setYearFilter] = useState("All");
-  const [semFilter, setSemFilter] = useState("All");
+  // New filter states for the plan modal
+  const [planFilterYear, setPlanFilterYear] = useState("All");
+  const [planFilterSem, setPlanFilterSem] = useState("All");
 
   const navigate = useNavigate();
 
-  const handleOpenPlanModal = () => {
-    setIsPlanModalOpen(true);
-    fetchAvailableSubjects();
-  };
-
-  // Fetch available subjects
+  // Fetch available subjects from courses API
   const fetchAvailableSubjects = async () => {
     try {
       const response = await axios.get(`${PORT}/courses`, {
@@ -41,11 +38,19 @@ export function AcademicAdvisingForm() {
     }
   };
 
+  // Open modal and fetch subjects
+  const handleOpenPlanModal = () => {
+    setIsPlanModalOpen(true);
+    fetchAvailableSubjects();
+  };
+
+  // Submit the advising form (create a new acadform)
   const handleSubmitForm = async () => {
     try {
       const payload = {
         recommendation: coachRemarks,
-        studentId: parseInt(id, 10), // Parse student ID from URL params
+        subjectPlan: planOfAction, // subject plan stored as JSON
+        studentId: parseInt(id, 10), // student ID from URL params
       };
 
       await axios.post(`${PORT}/acadforms`, payload, {
@@ -62,6 +67,7 @@ export function AcademicAdvisingForm() {
     }
   };
 
+  // Fetch student data
   const fetchStudentData = async () => {
     try {
       const response = await axios.get(`${PORT}/students/${id}`, {
@@ -72,19 +78,161 @@ export function AcademicAdvisingForm() {
       setStudent(response.data);
     } catch (error) {
       console.error("Error fetching student data:", error);
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  // Fetch acadform for student if it exists
+  const fetchAcadForm = async () => {
+    try {
+      // Adjust endpoint if necessary.
+      const response = await axios.get(`${PORT}/acadforms/student/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      if (response.data) {
+        setExistingAcadForm(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching academic form:", error);
     }
   };
 
   useEffect(() => {
-    fetchStudentData();
+    const fetchData = async () => {
+      await fetchStudentData();
+      await fetchAcadForm();
+      setIsLoading(false);
+    };
+    fetchData();
   }, [id]);
+
+  // Handler for checkbox toggle in the plan modal
+  const handleCheckboxChange = (subject, isChecked) => {
+    if (isChecked) {
+      setSelectedSubjects((prev) => [...prev, subject]);
+    } else {
+      setSelectedSubjects((prev) => prev.filter((s) => s.id !== subject.id));
+    }
+  };
+
+  // Handler for adding selected subjects to the plan
+  const handleAddSelectedToPlan = () => {
+    if (selectedSubjects.length > 0) {
+      setPlanOfAction([...planOfAction, ...selectedSubjects]);
+      setSelectedSubjects([]);
+      setIsPlanModalOpen(false);
+    } else {
+      alert("Please select at least one subject.");
+    }
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
+  // Render read-only view if acadform already exists
+  if (existingAcadForm) {
+    return (
+      <div>
+        <Sidebar />
+        <div className="ml-60 bg-base-200">
+          <Navbar />
+          <div className="p-8">
+            <h1 className="font-bold text-xl mb-8">Academic Advising Form</h1>
+            <div className="card bg-white shadow-xl p-8">
+              <h2 className="font-bold text-lg mb-4">
+                {student.firstName} {student.lastName} - {student.studentId}
+              </h2>
+              <p className="mb-2">
+                <strong>Program:</strong> {student.program.name}
+              </p>
+              <p className="mb-8">
+                <strong>Year Level:</strong> {student.yearLevel}
+              </p>
+
+              {/* Display Currently Enrolled Subjects */}
+              <h3 className="font-bold text-md mb-4">
+                Currently Enrolled Subjects
+              </h3>
+              <table className="table w-full mb-6">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Description</th>
+                    <th>Units</th>
+                    <th>Remark</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {student.studentCourse
+                    .filter(
+                      (course) =>
+                        course.course.year === student.yearLevel &&
+                        course.course.sem === 1
+                    )
+                    .map((course) => (
+                      <tr key={course.id}>
+                        <td>{course.course.subject}</td>
+                        <td>{course.course.description}</td>
+                        <td>{course.course.units}</td>
+                        <td>{course.remark}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+
+              {/* Read-Only AcadForm Data */}
+
+              <div className="mb-6">
+                <h3 className="font-bold text-md mb-2">
+                  Subject Plan to Enroll
+                </h3>
+                {existingAcadForm.subjectPlan ? (
+                  <table className="table w-full">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Units</th>
+                        <th>Semester</th>
+                        <th>Year</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {existingAcadForm.subjectPlan.map((subject, index) => (
+                        <tr key={index}>
+                          <td>{subject.subject}</td>
+                          <td>{subject.units}</td>
+                          <td>{subject.sem}</td>
+                          <td>{subject.year}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>No subject plan available.</p>
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-md mb-2">Coach's Remarks</h3>
+                <p>{existingAcadForm.recommendation}</p>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  className="btn btn-outline"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  Back to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no acadform exists, display the editable form
   return (
     <div>
       <Sidebar />
@@ -105,7 +253,7 @@ export function AcademicAdvisingForm() {
               </p>
             </div>
 
-            {/* Current Subjects Table */}
+            {/* Currently Enrolled Subjects */}
             <h3 className="font-bold text-md mb-4">
               Currently Enrolled Subjects
             </h3>
@@ -120,7 +268,11 @@ export function AcademicAdvisingForm() {
               </thead>
               <tbody>
                 {student.studentCourse
-                  .filter((course) => course.course.year === student.yearLevel) // Filter by year level
+                  .filter(
+                    (course) =>
+                      course.course.year === student.yearLevel &&
+                      course.course.sem === 1
+                  )
                   .map((course) => (
                     <tr key={course.id}>
                       <td>{course.course.subject}</td>
@@ -132,7 +284,7 @@ export function AcademicAdvisingForm() {
               </tbody>
             </table>
 
-            {/* Plan of Action */}
+            {/* Subject Plan to Enroll */}
             <h3 className="font-bold text-md mb-4">Subject Plan to Enroll</h3>
             <table className="table w-full mb-6">
               <thead>
@@ -149,7 +301,7 @@ export function AcademicAdvisingForm() {
                   <tr key={index}>
                     <td>{action.subject}</td>
                     <td>{action.units}</td>
-                    <td>{action.semester}</td>
+                    <td>{action.sem}</td>
                     <td>{action.year}</td>
                     <td>
                       <button
@@ -174,7 +326,7 @@ export function AcademicAdvisingForm() {
               Add Plan
             </button>
 
-            {/* Remarks Section */}
+            {/* Coach's Remarks */}
             <div className="mt-6">
               <label className="block mb-2 font-bold">Coach's Remarks</label>
               <textarea
@@ -194,17 +346,17 @@ export function AcademicAdvisingForm() {
         </div>
       </div>
 
+      {/* Add Plan Modal */}
       {isPlanModalOpen && (
         <div className="modal modal-open">
           <div className="modal-box w-11/12 max-w-5xl">
-            <h3 className="font-bold text-lg">Add Subject to Plan</h3>
-
-            {/* Filters */}
-            <div className="flex gap-4 my-4">
+            <h3 className="font-bold text-lg mb-4">Add Subject(s) to Plan</h3>
+            {/* Filters for Year Level and Semester */}
+            <div className="flex gap-4 mb-4">
               <select
                 className="select select-bordered"
-                onChange={(e) => setYearFilter(e.target.value)}
-                defaultValue="All"
+                value={planFilterYear}
+                onChange={(e) => setPlanFilterYear(e.target.value)}
               >
                 <option value="All">All Year Levels</option>
                 <option value="FIRST">First Year</option>
@@ -214,8 +366,8 @@ export function AcademicAdvisingForm() {
               </select>
               <select
                 className="select select-bordered"
-                onChange={(e) => setSemFilter(e.target.value)}
-                defaultValue="All"
+                value={planFilterSem}
+                onChange={(e) => setPlanFilterSem(e.target.value)}
               >
                 <option value="All">All Semesters</option>
                 <option value="1">1st Semester</option>
@@ -223,42 +375,49 @@ export function AcademicAdvisingForm() {
               </select>
             </div>
 
-            {/* List of Available Subjects */}
+            {/* List of Available Subjects with Checkboxes */}
             <div className="overflow-x-auto my-4">
               <table className="table w-full">
                 <thead>
                   <tr>
+                    <th></th>
                     <th>Subject</th>
                     <th>Description</th>
                     <th>Units</th>
                     <th>Sem</th>
                     <th>Year</th>
-                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {availableSubjects
-                    .filter(
-                      (subject) =>
-                        (yearFilter === "All" || subject.year === yearFilter) &&
-                        (semFilter === "All" ||
-                          subject.sem.toString() === semFilter)
-                    )
+                    .filter((subject) => {
+                      const yearMatch =
+                        planFilterYear === "All" ||
+                        subject.year === planFilterYear;
+                      const semMatch =
+                        planFilterSem === "All" ||
+                        subject.sem.toString() === planFilterSem;
+                      return yearMatch && semMatch;
+                    })
                     .map((subject) => (
                       <tr key={subject.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            className="checkbox"
+                            checked={selectedSubjects.some(
+                              (s) => s.id === subject.id
+                            )}
+                            onChange={(e) =>
+                              handleCheckboxChange(subject, e.target.checked)
+                            }
+                          />
+                        </td>
                         <td>{subject.subject}</td>
                         <td>{subject.description}</td>
                         <td>{subject.units}</td>
                         <td>{subject.sem}</td>
                         <td>{subject.year}</td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-outline"
-                            onClick={() => setSelectedSubject(subject)}
-                          >
-                            Select
-                          </button>
-                        </td>
                       </tr>
                     ))}
                 </tbody>
@@ -269,20 +428,16 @@ export function AcademicAdvisingForm() {
             <div className="modal-action">
               <button
                 className="btn btn-success"
-                onClick={() => {
-                  if (selectedSubject) {
-                    setPlanOfAction([...planOfAction, selectedSubject]);
-                    setIsPlanModalOpen(false);
-                  } else {
-                    alert("Please select a subject.");
-                  }
-                }}
+                onClick={handleAddSelectedToPlan}
               >
                 Add to Plan
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => setIsPlanModalOpen(false)}
+                onClick={() => {
+                  setIsPlanModalOpen(false);
+                  setSelectedSubjects([]);
+                }}
               >
                 Close
               </button>

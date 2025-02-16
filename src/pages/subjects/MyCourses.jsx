@@ -7,8 +7,14 @@ import { PORT } from "../../utils/constants";
 
 export function MySubjects() {
   const [studentData, setStudentData] = useState(null);
+  const [allCourses, setAllCourses] = useState([]); // For transcript
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate(); // Hook for navigation
+  const [activeTab, setActiveTab] = useState("My Subjects"); // "My Subjects" or "Transcript of Records"
+  const navigate = useNavigate();
+
+  // New filters for Transcript of Records tab
+  const [transcriptYearFilter, setTranscriptYearFilter] = useState("All");
+  const [transcriptSemFilter, setTranscriptSemFilter] = useState("All");
 
   const fetchStudentData = async () => {
     try {
@@ -26,8 +32,23 @@ export function MySubjects() {
     }
   };
 
+  // Fetch all courses for transcript
+  const fetchAllCourses = async () => {
+    try {
+      const response = await axios.get(`${PORT}/courses`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setAllCourses(response.data);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+    }
+  };
+
   useEffect(() => {
     fetchStudentData();
+    fetchAllCourses();
   }, []);
 
   if (isLoading) {
@@ -36,6 +57,29 @@ export function MySubjects() {
 
   if (!studentData) {
     return <div>Error: Unable to fetch student data</div>;
+  }
+
+  // For "My Subjects" tab: display only subjects that match the student's current year level and are 1st semester.
+  const mySubjects = studentData.studentCourse.filter(
+    (course) =>
+      course.course.year === studentData.yearLevel && course.course.sem === 1
+  );
+
+  // For "Transcript of Records": first, get courses that belong to the student's program.
+  let transcriptCourses = allCourses.filter(
+    (course) => course.programId === studentData.program.id
+  );
+
+  // Apply additional filters if set.
+  if (transcriptYearFilter !== "All") {
+    transcriptCourses = transcriptCourses.filter(
+      (course) => course.year === transcriptYearFilter
+    );
+  }
+  if (transcriptSemFilter !== "All") {
+    transcriptCourses = transcriptCourses.filter(
+      (course) => course.sem.toString() === transcriptSemFilter
+    );
   }
 
   return (
@@ -59,46 +103,128 @@ export function MySubjects() {
               </p>
             </div>
 
-            {/* Subjects Table */}
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>Subject</th>
-                    <th>Description</th>
-                    <th>Units</th>
-                    <th>Semester</th>
-                    <th>Year</th>
-                    <th>Remark</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {studentData.studentCourse
-                    .filter(
-                      (course) => course.course.year === studentData.yearLevel
-                    ) // Filter courses based on year level
-                    .map((course) => (
-                      <tr key={course.id}>
-                        <td>{course.course.subject}</td>
-                        <td>{course.course.description}</td>
-                        <td>{course.course.units}</td>
-                        <td>{course.course.sem}</td>
-                        <td>{course.course.year}</td>
-                        <td>
-                          {course.remark === "HOLD" ? "_" : course.remark}
-                        </td>{" "}
-                        {/* Handle "HOLD" remark */}
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+            {/* Tabs */}
+            <div className="tabs mb-4">
+              <button
+                className={`tab tab-bordered ${
+                  activeTab === "My Subjects" ? "tab-active" : ""
+                }`}
+                onClick={() => setActiveTab("My Subjects")}
+              >
+                My Subjects
+              </button>
+              <button
+                className={`tab tab-bordered ${
+                  activeTab === "Transcript of Records" ? "tab-active" : ""
+                }`}
+                onClick={() => setActiveTab("Transcript of Records")}
+              >
+                Transcript of Records
+              </button>
             </div>
+
+            {/* Tab Content */}
+            {activeTab === "My Subjects" && (
+              <>
+                {/* Subjects Table for My Subjects */}
+                <div className="overflow-x-auto">
+                  <table className="table w-full">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Description</th>
+                        <th>Units</th>
+                        <th>No of Take</th>
+                        <th>Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mySubjects.map((course) => (
+                        <tr key={course.id}>
+                          <td>{course.course.subject}</td>
+                          <td>{course.course.description}</td>
+                          <td>{course.course.units}</td>
+                          <td>{course.noTake}</td>
+                          <td>
+                            {course.remark === "HOLD" ? "_" : course.remark}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {activeTab === "Transcript of Records" && (
+              <>
+                {/* Filters for Transcript */}
+                <div className="flex gap-4 mb-4">
+                  <select
+                    className="select select-bordered"
+                    value={transcriptYearFilter}
+                    onChange={(e) => setTranscriptYearFilter(e.target.value)}
+                  >
+                    <option value="All">All Year Levels</option>
+                    <option value="FIRST">First Year</option>
+                    <option value="SECOND">Second Year</option>
+                    <option value="THIRD">Third Year</option>
+                    <option value="FOURTH">Fourth Year</option>
+                  </select>
+                  <select
+                    className="select select-bordered"
+                    value={transcriptSemFilter}
+                    onChange={(e) => setTranscriptSemFilter(e.target.value)}
+                  >
+                    <option value="All">All Semesters</option>
+                    <option value="1">1st Semester</option>
+                    <option value="2">2nd Semester</option>
+                  </select>
+                </div>
+
+                {/* Transcript Table */}
+                <div className="overflow-x-auto">
+                  <table className="table w-full">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Description</th>
+                        <th>Units</th>
+                        <th>Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transcriptCourses.map((course) => {
+                        // Check if student has taken this course
+                        const studentRecord = studentData.studentCourse.find(
+                          (sc) => sc.courseId === course.id
+                        );
+                        return (
+                          <tr key={course.id}>
+                            <td>{course.subject}</td>
+                            <td>{course.description}</td>
+                            <td>{course.units}</td>
+                            <td>
+                              {studentRecord
+                                ? studentRecord.remark === "HOLD"
+                                  ? "_"
+                                  : studentRecord.remark
+                                : "Not Taken"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
             {/* Action Buttons */}
             <div className="mt-6 flex justify-end">
               <button
                 className="btn btn-outline"
-                onClick={() => navigate(`/academic-advising/${studentData.id}`)} // Redirect to the Academic Advising Form page
+                onClick={() => navigate(`/academic-advising/${studentData.id}`)}
               >
                 View AcadForm
               </button>
