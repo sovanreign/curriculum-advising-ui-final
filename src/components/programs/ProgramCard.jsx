@@ -1,10 +1,13 @@
 /* eslint-disable react/prop-types */
 import { Link } from "react-router-dom";
 const ProgramCard = ({ program }) => {
+  const passed = program.gradeSummary?.passed ?? 0;
+  const failed = program.gradeSummary?.failed ?? 0;
+
   return (
     <>
       <Link to={`/programs/coach-list/${program.id}`}>
-        <div className="border-2 w-96 h-80 rounded-lg text-left  shadow-lg cursor-pointer">
+        <div className="border-2 w-96 h-96 rounded-lg text-left  shadow-lg cursor-pointer">
           <div className="bg-orange-100 rounded-t-lg px-2 flex justify-center items-center">
             <img
               src={`/${program.code.toLowerCase()}.png`}
@@ -19,6 +22,10 @@ const ProgramCard = ({ program }) => {
               <p className="text-base font-medium">
                 {program.coaches.length} Curriculum Coach
               </p>
+            </div>
+            <div className="mt-7">
+              <p className="text-sm font-medium">{passed} Students Passed</p>
+              <p className="text-sm font-medium">{failed} Students Failed</p>
             </div>
           </div>
         </div>

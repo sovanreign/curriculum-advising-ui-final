@@ -17,9 +17,34 @@ const Program = () => {
           },
         });
 
-        setPrograms(response.data);
+        const processedPrograms = response.data.map((program) => {
+          let passed = 0;
+          let failed = 0;
+
+          program.students.forEach((student) => {
+            const hasFailed = student.studentCourse?.some(
+              (course) => course.remark === "FAILED"
+            );
+
+            if (hasFailed) {
+              failed += 1;
+            } else {
+              passed += 1;
+            }
+          });
+
+          return {
+            ...program,
+            gradeSummary: {
+              passed,
+              failed,
+            },
+          };
+        });
+
+        setPrograms(processedPrograms);
       } catch (error) {
-        console.error("Error fetching profile data:", error);
+        console.error("Error fetching programs:", error);
       }
     };
 

@@ -13,6 +13,9 @@ export function AcademicAdvisingForm() {
   const [planOfAction, setPlanOfAction] = useState([]); // Subject plan (array of subjects)
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const userRole = localStorage.getItem("role");
+
   // Modal states for "Add Subject to Plan"
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState([]);
@@ -93,8 +96,32 @@ export function AcademicAdvisingForm() {
       if (response.data) {
         setExistingAcadForm(response.data);
       }
+      setCoachRemarks(response.data.recommendation);
+      setPlanOfAction(response.data.subjectPlan || []);
     } catch (error) {
       console.error("Error fetching academic form:", error);
+    }
+  };
+
+  const handleUpdateForm = async () => {
+    try {
+      const payload = {
+        recommendation: coachRemarks,
+        subjectPlan: planOfAction,
+      };
+
+      await axios.patch(`${PORT}/acadforms/${existingAcadForm.id}`, payload, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+
+      alert("Academic form updated successfully!");
+      setIsEditing(false);
+      fetchAcadForm(); // Refresh the form data
+    } catch (error) {
+      console.error("Error updating form:", error);
+      alert("An error occurred while updating the form.");
     }
   };
 
@@ -132,7 +159,7 @@ export function AcademicAdvisingForm() {
   }
 
   // Render read-only view if acadform already exists
-  if (existingAcadForm) {
+  if (existingAcadForm && !isEditing) {
     return (
       <div>
         <Sidebar />
@@ -151,7 +178,6 @@ export function AcademicAdvisingForm() {
                 <strong>Year Level:</strong> {student.yearLevel}
               </p>
 
-              {/* Display Currently Enrolled Subjects */}
               <h3 className="font-bold text-md mb-4">
                 Currently Enrolled Subjects
               </h3>
@@ -182,13 +208,11 @@ export function AcademicAdvisingForm() {
                 </tbody>
               </table>
 
-              {/* Read-Only AcadForm Data */}
-
               <div className="mb-6">
                 <h3 className="font-bold text-md mb-2">
                   Subject Plan to Enroll
                 </h3>
-                {existingAcadForm.subjectPlan ? (
+                {existingAcadForm.subjectPlan?.length ? (
                   <table className="table w-full">
                     <thead>
                       <tr>
@@ -213,17 +237,27 @@ export function AcademicAdvisingForm() {
                   <p>No subject plan available.</p>
                 )}
               </div>
+
               <div>
                 <h3 className="font-bold text-md mb-2">Coach's Remarks</h3>
                 <p>{existingAcadForm.recommendation}</p>
               </div>
-              <div className="mt-6 flex justify-end">
+
+              <div className="mt-6 flex justify-end gap-2">
                 <button
                   className="btn btn-outline"
                   onClick={() => navigate("/dashboard")}
                 >
                   Back to Dashboard
                 </button>
+                {userRole !== "STUDENT" && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    Edit Form
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -319,12 +353,14 @@ export function AcademicAdvisingForm() {
                 ))}
               </tbody>
             </table>
-            <button
-              className="btn btn-sm btn-outline"
-              onClick={handleOpenPlanModal}
-            >
-              Add Plan
-            </button>
+            {userRole !== "STUDENT" && (
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={handleOpenPlanModal}
+              >
+                Add Plan
+              </button>
+            )}
 
             {/* Coach's Remarks */}
             <div className="mt-6">
@@ -332,16 +368,24 @@ export function AcademicAdvisingForm() {
               <textarea
                 className="textarea textarea-bordered w-full"
                 value={coachRemarks}
+                disabled={userRole === "STUDENT"}
                 onChange={(e) => setCoachRemarks(e.target.value)}
               ></textarea>
             </div>
 
             {/* Submit Button */}
-            <div className="mt-6 flex justify-end">
-              <button className="btn btn-success" onClick={handleSubmitForm}>
-                Submit Form
-              </button>
-            </div>
+            {userRole !== "STUDENT" && (
+              <div className="mt-6 flex justify-end">
+                <button
+                  className="btn btn-success"
+                  onClick={
+                    existingAcadForm ? handleUpdateForm : handleSubmitForm
+                  }
+                >
+                  {existingAcadForm ? "Save Changes" : "Submit Form"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

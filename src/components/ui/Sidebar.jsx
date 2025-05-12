@@ -36,7 +36,7 @@ export function Sidebar() {
     COACH: [
       { name: "Profile", icon: FaCircleUser, path: "/profile" },
       { name: "Dashboard", icon: FaFileInvoice, path: "/dashboard" },
-
+      { name: "Subject", icon: FaFile, path: "/curriculum" },
       { name: "List of Students", icon: FaGraduationCap, path: "/my-students" },
       { name: "Summary", icon: FaFile, path: "/summary" },
       {
@@ -49,6 +49,7 @@ export function Sidebar() {
         },
       },
     ],
+
     DEAN: [
       { name: "Profile", icon: FaCircleUser, path: "/profile" },
       { name: "Students", icon: FaGraduationCap, path: "/students" },
@@ -56,7 +57,22 @@ export function Sidebar() {
       { name: "Manage Coaching", icon: FaUserGroup, path: "/manage-coaching" },
       { name: "Curriculum", icon: FaFile, path: "/curriculum" },
       { name: "Programs", icon: FaFileInvoice, path: "/programs" },
-      { name: "Notifications", icon: FaBell, path: "/notifications" },
+      // { name: "Notifications", icon: FaBell, path: "/notifications" },
+      {
+        name: "Logout",
+        icon: FaDoorOpen,
+        path: "/logout",
+        onClick: () => {
+          localStorage.removeItem("access_token");
+          navigate("/login");
+        },
+      },
+    ],
+    HEAD: [
+      { name: "Profile", icon: FaCircleUser, path: "/profile" },
+      { name: "Curriculum", icon: FaFile, path: "/curriculum" },
+      { name: "Programs", icon: FaFileInvoice, path: "/programs" },
+      // { name: "Notifications", icon: FaBell, path: "/notifications" },
       {
         name: "Logout",
         icon: FaDoorOpen,

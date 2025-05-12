@@ -6,6 +6,8 @@ import { Sidebar } from "../../components/ui/Sidebar";
 import { PORT } from "../../utils/constants";
 
 export function Curriculum() {
+  const userRole = localStorage.getItem("role");
+
   const [curriculums, setCurriculums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,7 +17,9 @@ export function Curriculum() {
   const [yearFilter, setYearFilter] = useState("All");
   const [semFilter, setSemFilter] = useState("All");
 
-  const [activeTab, setActiveTab] = useState("List of Curriculum");
+  const [activeTab, setActiveTab] = useState(
+    userRole === "COACH" ? "Courses" : "List of Curriculum"
+  );
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -149,6 +153,21 @@ export function Curriculum() {
     }
   };
 
+  const handleDeleteCurriculum = async (id) => {
+    if (!confirm("Are you sure you want to delete this curriculum?")) return;
+
+    try {
+      await axios.delete(`${PORT}/curriculums/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      fetchCurriculums(); // Refresh list after delete
+    } catch (error) {
+      console.error("Error deleting curriculum:", error);
+    }
+  };
+
   // CSV download handler for courses
   const handleDownloadCoursesCsv = () => {
     // Build CSV header for courses
@@ -187,14 +206,16 @@ export function Curriculum() {
           <div className="card bg-white w-full shadow-xl">
             <div className="card-body">
               <div className="tabs mb-4">
-                <a
-                  className={`tab tab-bordered ${
-                    activeTab === "List of Curriculum" ? "tab-active" : ""
-                  }`}
-                  onClick={() => handleTabChange("List of Curriculum")}
-                >
-                  List of Curriculum
-                </a>
+                {userRole !== "COACH" && (
+                  <a
+                    className={`tab tab-bordered ${
+                      activeTab === "List of Curriculum" ? "tab-active" : ""
+                    }`}
+                    onClick={() => handleTabChange("List of Curriculum")}
+                  >
+                    List of Curriculum
+                  </a>
+                )}
                 <a
                   className={`tab tab-bordered ${
                     activeTab === "Courses" ? "tab-active" : ""
@@ -215,6 +236,7 @@ export function Curriculum() {
                           <th>REV#</th>
                           <th>EFFECTIVITY</th>
                           <th>CMO NAME</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -224,6 +246,16 @@ export function Curriculum() {
                             <td>{curriculum.rev}</td>
                             <td>{curriculum.effectivity}</td>
                             <td>{curriculum.cmoName}</td>
+                            <td>
+                              <button
+                                className="btn btn-sm btn-error"
+                                onClick={() =>
+                                  handleDeleteCurriculum(curriculum.id)
+                                }
+                              >
+                                Delete
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
