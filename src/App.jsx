@@ -19,6 +19,7 @@ import SummaryDetails from "./pages/summary/SummaryDetails";
 import CoachDetails from "./pages/programs/CoachDetails";
 import { StudentSubjects } from "./pages/programs/StudentSubjects";
 import SubjectSummary from "./pages/programs/SubjectSummary";
+import { AcadForm } from "./pages/my-students/AcadForm";
 
 const App = () => {
   return (
@@ -39,10 +40,11 @@ const App = () => {
           <Route path="/my-students" element={<MyStudents />} />
           <Route path="/my-students/:id" element={<StudentCourses />} />
           <Route path="/my-subjects" element={<MySubjects />} />
-          <Route
+          {/* <Route
             path="/academic-advising/:id"
             element={<AcademicAdvisingForm />}
-          />
+          /> */}
+          <Route path="/academic-advising/:id" element={<AcadForm />} />
           <Route
             path="/programs/coach-list/:id"
             element={<CurriculumCoachesList />}
