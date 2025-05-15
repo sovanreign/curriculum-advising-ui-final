@@ -23,6 +23,29 @@ export function AcadForm() {
 
   const navigate = useNavigate();
 
+  const [selectedSchoolTermId, setSelectedSchoolTermId] = useState(null);
+
+  const [schoolTerms, setSchoolTerms] = useState([]);
+  const fetchSchoolTerms = async () => {
+    try {
+      const response = await axios.get(`${PORT}/school-terms`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      const terms = response.data;
+      setSchoolTerms(terms);
+
+      // Set default to latest (or first) school term
+      if (terms.length > 0 && !selectedSchoolTermId) {
+        // Example: use the last item assuming it's sorted oldest → newest
+        setSelectedSchoolTermId(terms[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching school terms:", error);
+    }
+  };
+
   const fetchAvailableSubjects = async () => {
     try {
       const response = await axios.get(`${PORT}/courses`, {
@@ -30,7 +53,17 @@ export function AcadForm() {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
       });
-      setAvailableSubjects(response.data);
+
+      const allSubjects = response.data;
+      setAvailableSubjects(allSubjects);
+
+      // Prefill Plan of Action with sem == 2 subjects for student's year and selected term
+      if (student && selectedSchoolTermId) {
+        const filtered = allSubjects.filter(
+          (course) => course.year === student.yearLevel && course.sem === 2
+        );
+        setPlanOfAction(filtered);
+      }
     } catch (error) {
       console.error("Error fetching subjects:", error);
     }
@@ -42,11 +75,17 @@ export function AcadForm() {
   };
 
   const handleSubmitForm = async () => {
+    if (!selectedSchoolTermId) {
+      alert("Please select a school term.");
+      return;
+    }
+
     try {
       const payload = {
         recommendation: coachRemarks,
         subjectPlan: planOfAction,
         studentId: parseInt(id, 10),
+        schoolTermId: selectedSchoolTermId, // ✅ include this
       };
 
       await axios.post(`${PORT}/acadforms`, payload, {
@@ -94,10 +133,16 @@ export function AcadForm() {
   };
 
   const handleUpdateForm = async () => {
+    if (!selectedSchoolTermId) {
+      alert("Please select a school term.");
+      return;
+    }
+
     try {
       const payload = {
         recommendation: coachRemarks,
         subjectPlan: planOfAction,
+        schoolTermId: selectedSchoolTermId, // ✅ required update
       };
 
       await axios.patch(`${PORT}/acadforms/${existingAcadForm.id}`, payload, {
@@ -119,10 +164,17 @@ export function AcadForm() {
     const fetchData = async () => {
       await fetchStudentData();
       await fetchAcadForm();
+      await fetchSchoolTerms();
       setIsLoading(false);
     };
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (student && selectedSchoolTermId) {
+      fetchAvailableSubjects(); // only call once both are ready
+    }
+  }, [student, selectedSchoolTermId]);
 
   const handleCheckboxChange = (subject, isChecked) => {
     if (isChecked) {
@@ -152,10 +204,19 @@ export function AcadForm() {
         <div className="p-8">
           <div className="card bg-white p-8 rounded-t-2xl">
             <div>
-              <select className="float-right border px-4 py-1 rounded-sm">
-                <option value="">School year 1</option>
-                <option value="">School year 2</option>
-                <option value="">School year 3</option>
+              <select
+                className="float-right border px-4 py-1 rounded-sm"
+                value={selectedSchoolTermId || ""}
+                onChange={(e) =>
+                  setSelectedSchoolTermId(Number(e.target.value))
+                }
+              >
+                <option value="">Select School Term</option>
+                {schoolTerms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.sy} - {term.semester === "FIRST" ? "1st" : "2nd"} Sem
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -195,17 +256,28 @@ export function AcadForm() {
                       </tr>
                     </thead>
                     <tbody>
-                      {student.studentCourse.map((course, index) => (
-                        <tr key={course.id}>
-                          <th>{index + 1}</th>
-                          <td>
-                            {course.course.subject} -{" "}
-                            {course.course.description}
-                          </td>
-                          <td>{course.course.units}</td>
-                          <td>{course.remark || "-"}</td>
-                        </tr>
-                      ))}
+                      {student.studentCourse
+                        .filter((course) => {
+                          const matchesSchoolTerm =
+                            selectedSchoolTermId === null ||
+                            course.schoolTermId === selectedSchoolTermId;
+                          const matchesYear =
+                            course.course?.year === student.yearLevel;
+                          const matchesSem = course.course?.sem === 1;
+
+                          return matchesSchoolTerm && matchesYear && matchesSem;
+                        })
+                        .map((course, index) => (
+                          <tr key={course.id}>
+                            <th>{index + 1}</th>
+                            <td>
+                              {course.course.subject} -{" "}
+                              {course.course.description}
+                            </td>
+                            <td>{course.course.units}</td>
+                            <td>{course.remark || "-"}</td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>

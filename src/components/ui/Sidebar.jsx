@@ -36,7 +36,6 @@ export function Sidebar() {
     COACH: [
       { name: "Profile", icon: FaCircleUser, path: "/profile" },
       { name: "Dashboard", icon: FaFileInvoice, path: "/dashboard" },
-      { name: "Subject", icon: FaFile, path: "/curriculum" },
       { name: "List of Students", icon: FaGraduationCap, path: "/my-students" },
       { name: "Summary", icon: FaFile, path: "/summary" },
       {
