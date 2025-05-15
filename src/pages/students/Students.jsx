@@ -289,6 +289,7 @@ export function Students() {
                     <th>Year Level</th>
                     <th>Program</th>
                     <th>Curriculum</th>
+                    <th>School Term</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -306,15 +307,25 @@ export function Students() {
                         {student.studentCourse[0]?.course.curriculum.code ||
                           "None"}
                       </td>
-                      <td className="flex space-x-2">
+                      <td>
+                        {student.studentCourse[0]?.schoolTerm
+                          ? `${student.studentCourse[0].schoolTerm.sy} - ${
+                              student.studentCourse[0].schoolTerm.semester ===
+                              "FIRST"
+                                ? "1st"
+                                : "2nd"
+                            } Sem`
+                          : "N/A"}
+                      </td>
+                      <td className="flex flex-col space-y-2">
                         <button
-                          className="btn btn-sm btn-outline"
+                          className="btn btn-xs btn-outline"
                           onClick={() => handleViewDetails(student)}
                         >
                           View details
                         </button>
                         <button
-                          className="btn btn-sm btn-outline"
+                          className="btn btn-xs btn-outline"
                           onClick={() => handleDelete(student.id)}
                         >
                           Delete

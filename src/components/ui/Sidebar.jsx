@@ -69,8 +69,9 @@ export function Sidebar() {
     ],
     HEAD: [
       { name: "Profile", icon: FaCircleUser, path: "/profile" },
-      { name: "Curriculum", icon: FaFile, path: "/curriculum" },
+      // { name: "Curriculum", icon: FaFile, path: "/curriculum" },
       { name: "Programs", icon: FaFileInvoice, path: "/programs" },
+      { name: "Summary", icon: FaFile, path: "/summary" },
       // { name: "Notifications", icon: FaBell, path: "/notifications" },
       {
         name: "Logout",
