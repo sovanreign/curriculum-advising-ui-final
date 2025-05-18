@@ -19,6 +19,22 @@ export default function Summary() {
 
   const [studentCourses, setStudentCourses] = useState([]);
 
+  const [schoolTerms, setSchoolTerms] = useState([]);
+  const [schoolTermFilter, setSchoolTermFilter] = useState("All");
+
+  const fetchSchoolTerms = async () => {
+    try {
+      const response = await axios.get(`${PORT}/school-terms`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setSchoolTerms(response.data);
+    } catch (error) {
+      console.error("Error fetching school terms:", error);
+    }
+  };
+
   const fetchCourses = async () => {
     try {
       const response = await axios.get(`${PORT}/courses`, {
@@ -58,47 +74,51 @@ export default function Summary() {
     }
   };
 
-  const filteredCourses = courses
-    .map((course) => {
-      const matchesCurriculum =
-        curriculumFilter === "All" ||
-        course.curriculumId.toString() === curriculumFilter;
-      const matchesYear = yearFilter === "All" || course.year === yearFilter;
-      const matchesSem =
-        semFilter === "All" || course.sem.toString() === semFilter;
+  const selectedTermId =
+    schoolTermFilter === "All" ? null : Number(schoolTermFilter);
 
-      if (!matchesCurriculum || !matchesYear || !matchesSem) {
-        return null;
-      }
+  const filteredStudentCourses = studentCourses.filter((sc) => {
+    const course = courses.find((c) => c.id === sc.courseId);
+    if (!course) return false;
 
-      // Count Passed, Failed, IP, and HOLD for this course
-      const courseStudentData = studentCourses.filter(
-        (sc) => sc.courseId === course.id
-      );
+    const matchesTerm =
+      selectedTermId === null || sc.schoolTermId === selectedTermId;
+    const matchesYear = yearFilter === "All" || course.year === yearFilter;
+    const matchesSem =
+      semFilter === "All" || course.sem.toString() === semFilter;
 
-      const passedCount = courseStudentData.filter(
-        (sc) => sc.remark === "PASSED"
-      ).length;
-      const failedCount = courseStudentData.filter(
-        (sc) => sc.remark === "FAILED"
-      ).length;
-      const ipCount = courseStudentData.filter(
-        (sc) => sc.remark === "IP"
-      ).length;
+    return matchesTerm && matchesYear && matchesSem;
+  });
 
-      return {
+  // Group by courseId and aggregate
+  const summaryMap = new Map();
+
+  filteredStudentCourses.forEach((sc) => {
+    const course = courses.find((c) => c.id === sc.courseId);
+    if (!course) return;
+
+    if (!summaryMap.has(course.id)) {
+      summaryMap.set(course.id, {
         ...course,
-        passedCount,
-        failedCount,
-        ipCount,
-      };
-    })
-    .filter(Boolean);
+        passedCount: 0,
+        failedCount: 0,
+        ipCount: 0,
+      });
+    }
+
+    const entry = summaryMap.get(course.id);
+    if (sc.remark === "PASSED") entry.passedCount++;
+    else if (sc.remark === "FAILED") entry.failedCount++;
+    else if (sc.remark === "IP") entry.ipCount++;
+  });
+
+  const filteredCourses = Array.from(summaryMap.values());
 
   useEffect(() => {
     fetchCourses();
     fetchStudentCourses();
     fetchPrograms();
+    fetchSchoolTerms();
   }, []);
 
   return (
@@ -114,6 +134,18 @@ export default function Summary() {
               <div>
                 <div className="flex items-center justify-between">
                   <div className="flex gap-4 mb-4">
+                    <select
+                      className="select select-bordered"
+                      value={schoolTermFilter}
+                      onChange={(e) => setSchoolTermFilter(e.target.value)}
+                    >
+                      <option value="All">All Terms</option>
+                      {schoolTerms.map((term) => (
+                        <option key={term.id} value={term.id}>
+                          {term.name}
+                        </option>
+                      ))}
+                    </select>
                     <select
                       className="select select-bordered"
                       value={yearFilter}

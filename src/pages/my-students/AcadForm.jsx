@@ -24,6 +24,21 @@ export function AcadForm() {
   const navigate = useNavigate();
 
   const [selectedSchoolTermId, setSelectedSchoolTermId] = useState(null);
+  const [curriculums, setCurriculums] = useState([]);
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState("All");
+
+  const fetchCurriculums = async () => {
+    try {
+      const response = await axios.get(`${PORT}/curriculums`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setCurriculums(response.data);
+    } catch (error) {
+      console.error("Error fetching curriculums:", error);
+    }
+  };
 
   const [schoolTerms, setSchoolTerms] = useState([]);
   const fetchSchoolTerms = async () => {
@@ -36,10 +51,9 @@ export function AcadForm() {
       const terms = response.data;
       setSchoolTerms(terms);
 
-      // Set default to latest (or first) school term
+      // Set default if none is selected yet
       if (terms.length > 0 && !selectedSchoolTermId) {
-        // Example: use the last item assuming it's sorted oldest → newest
-        setSelectedSchoolTermId(terms[0].id);
+        setSelectedSchoolTermId(terms[0].id); // default to first
       }
     } catch (error) {
       console.error("Error fetching school terms:", error);
@@ -58,12 +72,12 @@ export function AcadForm() {
       setAvailableSubjects(allSubjects);
 
       // Prefill Plan of Action with sem == 2 subjects for student's year and selected term
-      if (student && selectedSchoolTermId) {
-        const filtered = allSubjects.filter(
-          (course) => course.year === student.yearLevel && course.sem === 2
-        );
-        setPlanOfAction(filtered);
-      }
+      // if (student && selectedSchoolTermId) {
+      //   const filtered = allSubjects.filter(
+      //     (course) => course.year === student.yearLevel && course.sem === 2
+      //   );
+      //   setPlanOfAction(filtered);
+      // }
     } catch (error) {
       console.error("Error fetching subjects:", error);
     }
@@ -115,20 +129,34 @@ export function AcadForm() {
     }
   };
 
-  const fetchAcadForm = async () => {
+  const fetchAcadForm = async (studentId, schoolTermId) => {
     try {
-      const response = await axios.get(`${PORT}/acadforms/student/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (response.data) {
-        setExistingAcadForm(response.data);
+      const response = await axios.get(
+        `${PORT}/acadforms/student/${studentId}?schoolTermId=${schoolTermId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
+
+      const form = response.data;
+
+      if (form) {
+        setExistingAcadForm(form);
+        setCoachRemarks(form.recommendation || "");
+        setPlanOfAction(form.subjectPlan || []);
+      } else {
+        // No form exists for that term — start fresh
+        setExistingAcadForm(null);
+        setCoachRemarks("");
+        setPlanOfAction([]);
       }
-      setCoachRemarks(response.data.recommendation);
-      setPlanOfAction(response.data.subjectPlan || []);
     } catch (error) {
       console.error("Error fetching academic form:", error);
+      setExistingAcadForm(null);
+      setCoachRemarks("");
+      setPlanOfAction([]);
     }
   };
 
@@ -161,10 +189,17 @@ export function AcadForm() {
   };
 
   useEffect(() => {
+    if (student && selectedSchoolTermId) {
+      fetchAcadForm(student.id, selectedSchoolTermId);
+      fetchAvailableSubjects();
+    }
+  }, [student, selectedSchoolTermId]);
+
+  useEffect(() => {
     const fetchData = async () => {
       await fetchStudentData();
-      await fetchAcadForm();
       await fetchSchoolTerms();
+      fetchCurriculums();
       setIsLoading(false);
     };
     fetchData();
@@ -214,7 +249,7 @@ export function AcadForm() {
                 <option value="">Select School Term</option>
                 {schoolTerms.map((term) => (
                   <option key={term.id} value={term.id}>
-                    {term.sy} - {term.semester === "FIRST" ? "1st" : "2nd"} Sem
+                    {term.name}
                   </option>
                 ))}
               </select>
@@ -258,14 +293,7 @@ export function AcadForm() {
                     <tbody>
                       {student.studentCourse
                         .filter((course) => {
-                          const matchesSchoolTerm =
-                            selectedSchoolTermId === null ||
-                            course.schoolTermId === selectedSchoolTermId;
-                          const matchesYear =
-                            course.course?.year === student.yearLevel;
-                          const matchesSem = course.course?.sem === 1;
-
-                          return matchesSchoolTerm && matchesYear && matchesSem;
+                          return course.schoolTermId === selectedSchoolTermId;
                         })
                         .map((course, index) => (
                           <tr key={course.id}>
@@ -318,7 +346,7 @@ export function AcadForm() {
                 <thead className="text-slate-900">
                   <tr>
                     <th></th>
-                    <th>Subject(s) plan to enroll this semester</th>
+                    <th>Subject(s) plan to enroll next semester</th>
                     <th>Regular offering</th>
                     <th>Off-Cycle</th>
                   </tr>
@@ -393,6 +421,18 @@ export function AcadForm() {
                 <option value="1">1st Semester</option>
                 <option value="2">2nd Semester</option>
               </select>
+              <select
+                className="select select-bordered"
+                value={selectedCurriculumId}
+                onChange={(e) => setSelectedCurriculumId(e.target.value)}
+              >
+                <option value="All">All Curriculums</option>
+                {curriculums.map((curr) => (
+                  <option key={curr.id} value={curr.id}>
+                    {curr.code}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="overflow-x-auto my-4">
@@ -413,10 +453,17 @@ export function AcadForm() {
                       const yearMatch =
                         planFilterYear === "All" ||
                         subject.year === planFilterYear;
+
                       const semMatch =
                         planFilterSem === "All" ||
                         subject.sem.toString() === planFilterSem;
-                      return yearMatch && semMatch;
+
+                      const curriculumMatch =
+                        selectedCurriculumId === "All" ||
+                        subject.curriculumId?.toString() ===
+                          selectedCurriculumId;
+
+                      return yearMatch && semMatch && curriculumMatch;
                     })
                     .map((subject) => (
                       <tr key={subject.id}>

@@ -12,9 +12,25 @@ export function MySubjects() {
   const [activeTab, setActiveTab] = useState("My Subjects"); // "My Subjects" or "Transcript of Records"
   const navigate = useNavigate();
 
+  const [schoolTerms, setSchoolTerms] = useState([]);
+  const [selectedSchoolTermId, setSelectedSchoolTermId] = useState("All");
+
   // New filters for Transcript of Records tab
   const [transcriptYearFilter, setTranscriptYearFilter] = useState("All");
   const [transcriptSemFilter, setTranscriptSemFilter] = useState("All");
+
+  const fetchSchoolTerms = async () => {
+    try {
+      const response = await axios.get(`${PORT}/school-terms`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setSchoolTerms(response.data);
+    } catch (error) {
+      console.error("Error fetching school terms:", error);
+    }
+  };
 
   const fetchStudentData = async () => {
     try {
@@ -49,6 +65,7 @@ export function MySubjects() {
   useEffect(() => {
     fetchStudentData();
     fetchAllCourses();
+    fetchSchoolTerms();
   }, []);
 
   if (isLoading) {
@@ -60,10 +77,15 @@ export function MySubjects() {
   }
 
   // For "My Subjects" tab: display only subjects that match the student's current year level and are 1st semester.
-  const mySubjects = studentData.studentCourse.filter(
-    (course) =>
-      course.course.year === studentData.yearLevel && course.course.sem === 1
-  );
+  const mySubjects = studentData.studentCourse.filter((course) => {
+    console.log("course.schoolTermId:", course.schoolTermId); // ✅ Debug
+
+    const matchesTerm =
+      selectedSchoolTermId === "All" ||
+      course.schoolTermId?.toString() === selectedSchoolTermId;
+
+    return matchesTerm;
+  });
 
   // For "Transcript of Records": first, get courses that belong to the student's program.
   let transcriptCourses = allCourses.filter(
@@ -126,6 +148,20 @@ export function MySubjects() {
             {/* Tab Content */}
             {activeTab === "My Subjects" && (
               <>
+                <div className="mb-4">
+                  <select
+                    className="select select-bordered"
+                    value={selectedSchoolTermId}
+                    onChange={(e) => setSelectedSchoolTermId(e.target.value)}
+                  >
+                    <option value="All">All School Terms</option>
+                    {schoolTerms.map((term) => (
+                      <option key={term.id} value={term.id}>
+                        {term.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {/* Subjects Table for My Subjects */}
                 <div className="overflow-x-auto">
                   <table className="table w-full">
