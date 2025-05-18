@@ -33,6 +33,7 @@ export function Students() {
           q: searchQuery,
           filterByYearLevel: yearLevel !== "ALL" ? yearLevel : undefined,
           filterByProgram: program !== "ALL" ? program : undefined,
+          filterBySchoolTerm: schoolTerm !== "ALL" ? schoolTerm : undefined,
         },
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -182,13 +183,33 @@ export function Students() {
     URL.revokeObjectURL(url);
   };
 
+  const [schoolTerms, setSchoolTerms] = useState([]);
+  const [schoolTerm, setSchoolTerm] = useState("ALL");
+  const [schoolTermModalOpen, setSchoolTermModalOpen] = useState(false);
+  const [selectedSchoolTerm, setSelectedSchoolTerm] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+
+  const fetchSchoolTerms = async () => {
+    try {
+      const response = await axios.get(`${PORT}/school-terms`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setSchoolTerms(response.data);
+    } catch (error) {
+      console.error("Error fetching school terms:", error);
+    }
+  };
+
   useEffect(() => {
     fetchPrograms();
+    fetchSchoolTerms();
   }, []);
 
   useEffect(() => {
     fetchStudents();
-  }, [searchQuery, yearLevel, program]);
+  }, [searchQuery, yearLevel, program, schoolTerm]);
 
   const formatYearLevel = (yearLevel) => {
     switch (yearLevel) {
@@ -232,6 +253,19 @@ export function Students() {
                 <div className="flex space-x-4">
                   <select
                     className="select select-bordered"
+                    value={schoolTerm}
+                    onChange={(e) => setSchoolTerm(e.target.value)}
+                  >
+                    <option value="ALL">All School Terms</option>
+                    {schoolTerms.map((term) => (
+                      <option key={term.id} value={term.id}>
+                        {term.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="select select-bordered"
                     value={yearLevel}
                     onChange={(e) => setYearLevel(e.target.value)}
                   >
@@ -269,6 +303,13 @@ export function Students() {
                   >
                     Upload Students
                   </button>
+                  <button
+                    className="btn btn-sm btn-outline"
+                    disabled={selectedStudents.length === 0}
+                    onClick={() => setSchoolTermModalOpen(true)}
+                  >
+                    Update School Term
+                  </button>
                 </div>
                 <div>
                   <button
@@ -283,19 +324,53 @@ export function Students() {
               <table className="table w-full">
                 <thead>
                   <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        onChange={(e) =>
+                          setSelectedStudents(
+                            e.target.checked ? students.map((s) => s.id) : []
+                          )
+                        }
+                        checked={
+                          students.length > 0 &&
+                          selectedStudents.length === students.length
+                        }
+                      />
+                    </th>
                     <th>Student Name</th>
                     <th>Student No.</th>
                     <th>Email</th>
                     <th>Year Level</th>
                     <th>Program</th>
                     <th>Curriculum</th>
-                    <th>School Term</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {students.map((student) => (
                     <tr key={student.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.id)}
+                          onChange={() => {
+                            if (selectedStudents.includes(student.id)) {
+                              setSelectedStudents(
+                                selectedStudents.filter(
+                                  (id) => id !== student.id
+                                )
+                              );
+                            } else {
+                              setSelectedStudents([
+                                ...selectedStudents,
+                                student.id,
+                              ]);
+                            }
+                          }}
+                        />
+                      </td>
+
                       <td>
                         {student.firstName} {student.lastName}
                       </td>
@@ -307,16 +382,7 @@ export function Students() {
                         {student.studentCourse[0]?.course.curriculum.code ||
                           "None"}
                       </td>
-                      <td>
-                        {student.studentCourse[0]?.schoolTerm
-                          ? `${student.studentCourse[0].schoolTerm.sy} - ${
-                              student.studentCourse[0].schoolTerm.semester ===
-                              "FIRST"
-                                ? "1st"
-                                : "2nd"
-                            } Sem`
-                          : "N/A"}
-                      </td>
+
                       <td className="flex flex-col space-y-2">
                         <button
                           className="btn btn-xs btn-outline"
@@ -347,6 +413,73 @@ export function Students() {
           </div>
         </div>
       </div>
+
+      {schoolTermModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box w-11/12 max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">
+              Update School Term for Selected Students
+            </h3>
+
+            <div className="mb-4">
+              <label className="block text-sm mb-2">Select School Term</label>
+              <select
+                className="select select-bordered w-full"
+                value={selectedSchoolTerm || ""}
+                onChange={(e) => setSelectedSchoolTerm(e.target.value)}
+              >
+                <option value="">Select Term</option>
+                {schoolTerms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="modal-action mt-4">
+              <button
+                className="btn btn-success"
+                disabled={!selectedSchoolTerm}
+                onClick={async () => {
+                  try {
+                    await axios.patch(
+                      `${PORT}/students/update/schoolTerm`,
+                      {
+                        userIds: selectedStudents,
+                        schoolTermId: parseInt(selectedSchoolTerm),
+                      },
+                      {
+                        headers: {
+                          Authorization: `Bearer ${localStorage.getItem(
+                            "access_token"
+                          )}`,
+                        },
+                      }
+                    );
+                    alert("School term updated successfully!");
+                    setSelectedStudents([]);
+                    setSelectedSchoolTerm(null);
+                    setSchoolTermModalOpen(false);
+                    fetchStudents();
+                  } catch (error) {
+                    console.error("Error updating school term:", error);
+                    alert("Update failed. Try again.");
+                  }
+                }}
+              >
+                Confirm
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={() => setSchoolTermModalOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Student Modal */}
       {isModalOpen && (
