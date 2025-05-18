@@ -32,6 +32,15 @@ export function StudentCourses() {
   // Tab state
   const [activeTab, setActiveTab] = useState("Student Evaluation");
 
+  const [selectedSchoolTermId, setSelectedSchoolTermId] = useState("");
+  const [schoolTerms, setSchoolTerms] = useState([]);
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+
+  const [isUploadGradesModalOpen, setIsUploadGradesModalOpen] = useState(false);
+  const [gradesCsvFile, setGradesCsvFile] = useState(null);
+
   // Fetch student
   const fetchStudentDetails = async () => {
     try {
@@ -110,9 +119,23 @@ export function StudentCourses() {
     }
   };
 
+  const fetchSchoolTerms = async () => {
+    try {
+      const response = await axios.get(`${PORT}/school-terms`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setSchoolTerms(response.data);
+    } catch (error) {
+      console.error("Error fetching school terms:", error);
+    }
+  };
+
   useEffect(() => {
     fetchStudentDetails();
     fetchCourses();
+    fetchSchoolTerms();
   }, []);
 
   if (!student) {
@@ -123,6 +146,10 @@ export function StudentCourses() {
   // STUDENT EVALUATION FILTERING
   // ---------------------------------------------------
   const filteredStudentCourses = student.studentCourse.filter((sc) => {
+    const matchesSchoolTerm =
+      selectedSchoolTermId === "" ||
+      sc.schoolTermId.toString() === selectedSchoolTermId;
+
     const matchesSemester =
       semesterFilter === "ALL" || sc.course.sem.toString() === semesterFilter;
 
@@ -136,7 +163,7 @@ export function StudentCourses() {
       sc.course.subject.toLowerCase().includes(lowerSearch) ||
       sc.course.description.toLowerCase().includes(lowerSearch);
 
-    return matchesSemester && matchesYear && matchesSearch;
+    return matchesSchoolTerm;
   });
 
   // ---------------------------------------------------
@@ -209,26 +236,23 @@ export function StudentCourses() {
                       onChange={(e) => setEvaluationSearchTerm(e.target.value)}
                     /> */}
 
-                    <select
-                      className="select select-bordered"
-                      value={semesterFilter}
-                      onChange={(e) => setSemesterFilter(e.target.value)}
-                    >
-                      <option value="ALL">All Semesters</option>
-                      <option value="1">1st Semester</option>
-                      <option value="2">2nd Semester</option>
-                    </select>
-                    <select
-                      className="select select-bordered"
-                      value={yearFilter}
-                      onChange={(e) => setYearFilter(e.target.value)}
-                    >
-                      <option value="ALL">All Years</option>
-                      <option value="FIRST">First Year</option>
-                      <option value="SECOND">Second Year</option>
-                      <option value="THIRD">Third Year</option>
-                      <option value="FOURTH">Fourth Year</option>
-                    </select>
+                    <div>
+                      <select
+                        className="select select-bordered w-full mb-4"
+                        value={selectedSchoolTermId}
+                        onChange={(e) =>
+                          setSelectedSchoolTermId(e.target.value)
+                        }
+                        required
+                      >
+                        <option value="">-- Select School Term --</option>
+                        {schoolTerms.map((term) => (
+                          <option key={term.id} value={term.id}>
+                            {term.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Student Course List */}
@@ -282,9 +306,18 @@ export function StudentCourses() {
                     </button>
                     <button
                       className="btn btn-outline"
-                      onClick={() => setIsAddCourseModalOpen(true)}
+                      onClick={() => setIsUploadModalOpen(true)}
+                      disabled={!selectedSchoolTermId}
                     >
-                      Add Course
+                      Upload Subjects
+                    </button>
+
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => setIsUploadGradesModalOpen(true)}
+                      disabled={!selectedSchoolTermId}
+                    >
+                      Upload Grades
                     </button>
                   </div>
                 </>
@@ -345,6 +378,74 @@ export function StudentCourses() {
         </div>
       </div>
 
+      {isUploadGradesModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Upload Student Grades</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                if (!gradesCsvFile || !selectedSchoolTermId) {
+                  alert("Please select a school term and CSV file.");
+                  return;
+                }
+
+                const formData = new FormData();
+                formData.append("file", gradesCsvFile);
+                formData.append("schoolTermId", selectedSchoolTermId);
+                formData.append("studentId", id); // still per student
+
+                try {
+                  await axios.post(
+                    `${PORT}/student-course/upload-grades`,
+                    formData,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${localStorage.getItem(
+                          "access_token"
+                        )}`,
+                        "Content-Type": "multipart/form-data",
+                      },
+                    }
+                  );
+                  alert("Grades upload successful");
+                  setIsUploadGradesModalOpen(false);
+                  setGradesCsvFile(null);
+                  fetchStudentDetails();
+                } catch (err) {
+                  console.error("Upload failed:", err);
+                  alert("Upload failed");
+                }
+              }}
+              className="grid gap-4 mt-4"
+            >
+              <div>
+                <label className="block mb-2">CSV File</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="file-input file-input-bordered w-full"
+                  onChange={(e) => setGradesCsvFile(e.target.files[0])}
+                />
+              </div>
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success">
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setIsUploadGradesModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add Course Modal */}
       {isAddCourseModalOpen && (
         <div className="modal modal-open">
@@ -381,6 +482,70 @@ export function StudentCourses() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isUploadModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Upload Student Subjects</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+
+                if (!csvFile || !selectedSchoolTermId) {
+                  alert("Please select a school term and CSV file.");
+                  return;
+                }
+
+                const formData = new FormData();
+                formData.append("file", csvFile);
+                formData.append("schoolTermId", selectedSchoolTermId);
+                formData.append("studentId", id); // Pass student ID
+
+                try {
+                  await axios.post(`${PORT}/student-course/upload`, formData, {
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem(
+                        "access_token"
+                      )}`,
+                      "Content-Type": "multipart/form-data",
+                    },
+                  });
+                  alert("Upload successful");
+                  setIsUploadModalOpen(false);
+                  setCsvFile(null);
+                  fetchStudentDetails(); // Refresh
+                } catch (err) {
+                  console.error("Upload failed:", err);
+                  alert("Upload failed");
+                }
+              }}
+              className="grid gap-4 mt-4"
+            >
+              <div>
+                <label className="block mb-2">CSV File</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="file-input file-input-bordered w-full"
+                  onChange={(e) => setCsvFile(e.target.files[0])}
+                />
+              </div>
+              <div className="modal-action">
+                <button type="submit" className="btn btn-success">
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setIsUploadModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
