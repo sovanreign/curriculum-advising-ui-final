@@ -12,6 +12,9 @@ const CurriculumCoachesList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredCoaches, setFilteredCoaches] = useState([]);
 
+  const [schoolTerms, setSchoolTerms] = useState([]);
+  const [selectedSchoolTerm, setSelectedSchoolTerm] = useState("ALL");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,21 +31,39 @@ const CurriculumCoachesList = () => {
       }
     };
 
+    const fetchSchoolTerms = async () => {
+      try {
+        const response = await axios.get(`${PORT}/school-terms`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        });
+        setSchoolTerms(response.data);
+      } catch (error) {
+        console.error("Error fetching school terms:", error);
+      }
+    };
+
     fetchPrograms();
+    fetchSchoolTerms();
   }, []);
 
   useEffect(() => {
     const fetchCoaches = async () => {
       try {
         const response = await axios.get(`${PORT}/coaches`, {
-          params: { filterByProgram: id }, // Pass id as a query parameter
+          params: {
+            filterByProgram: id,
+            filterBySchoolTerm:
+              selectedSchoolTerm !== "ALL" ? selectedSchoolTerm : undefined,
+          },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
         });
 
         setCoaches(response.data);
-        setFilteredCoaches(response.data); // Set default filtered coaches
+        setFilteredCoaches(response.data);
       } catch (error) {
         console.error("Error fetching coaches:", error);
       }
@@ -51,7 +72,7 @@ const CurriculumCoachesList = () => {
     if (id) {
       fetchCoaches();
     }
-  }, [id]);
+  }, [id, selectedSchoolTerm]);
 
   useEffect(() => {
     const results = coaches.filter(
@@ -77,6 +98,7 @@ const CurriculumCoachesList = () => {
           <div className="card bg-white w-full shadow-xl">
             <div className="card-body text-center">
               <div className="flex justify-between items-center mb-2">
+                {/* Left: Search Bar */}
                 <div className="flex space-x-4">
                   <input
                     type="text"
@@ -87,31 +109,24 @@ const CurriculumCoachesList = () => {
                   />
                 </div>
 
-                {/* <div className="flex space-x-4">
+                {/* Right: School Term Dropdown */}
+                <div className="flex space-x-4">
+                  <button className="btn btn-outline btn-sm">
+                    View Coaching Summary
+                  </button>
                   <select
                     className="select select-bordered"
-                    // value={yearLevel}
-                    // onChange={(e) => setYearLevel(e.target.value)}
+                    value={selectedSchoolTerm}
+                    onChange={(e) => setSelectedSchoolTerm(e.target.value)}
                   >
-                    <option value="ALL">All Years</option>
-                    <option value="FIRST">1st Year</option>
-                    <option value="SECOND">2nd Year</option>
-                    <option value="THIRD">3rd Year</option>
-                    <option value="FOURTH">4th Year</option>
-                  </select>
-                  <select
-                    className="select select-bordered"
-                    // value={program}
-                    // onChange={(e) => setProgram(e.target.value)}
-                  >
-                    <option value="ALL">All Programs</option>
-                    {programs.map((prog) => (
-                      <option key={prog.id} value={prog.id}>
-                        {prog.code}
+                    <option value="ALL">All School Terms</option>
+                    {schoolTerms.map((term) => (
+                      <option key={term.id} value={term.id}>
+                        {term.name}
                       </option>
                     ))}
                   </select>
-                </div> */}
+                </div>
               </div>
 
               <table className="table w-full">

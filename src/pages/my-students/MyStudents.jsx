@@ -11,6 +11,21 @@ export function MyStudents() {
   const [yearFilter, setYearFilter] = useState("ALL");
   const [programFilter, setProgramFilter] = useState("ALL");
   const [trackFilter, setTrackFilter] = useState("ALL");
+  const [schoolTerms, setSchoolTerms] = useState([]);
+  const [selectedSchoolTerm, setSelectedSchoolTerm] = useState("ALL");
+
+  const fetchSchoolTerms = async () => {
+    try {
+      const response = await axios.get(`${PORT}/school-terms`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      setSchoolTerms(response.data);
+    } catch (error) {
+      console.error("Error fetching school terms:", error);
+    }
+  };
 
   const fetchPrograms = async () => {
     try {
@@ -55,25 +70,33 @@ export function MyStudents() {
   useEffect(() => {
     fetchPrograms();
     fetchStudents();
+    fetchSchoolTerms();
   }, []);
 
   // Filters for students
   const filteredStudents = students.filter((student) => {
     const matchesYear =
       yearFilter === "ALL" || student.yearLevel.toUpperCase() === yearFilter;
+
     const matchesProgram =
       programFilter === "ALL" ||
       (student.program && student.program.code.toUpperCase() === programFilter);
+
     const matchesTrack =
       trackFilter === "ALL" ||
       (trackFilter === "ON_TRACK" && student.isOnTrack) ||
       (trackFilter === "NOT_ON_TRACK" && !student.isOnTrack);
 
+    const matchesSchoolTerm =
+      selectedSchoolTerm === "ALL" ||
+      student.schoolTermId?.toString() === selectedSchoolTerm;
+
     return (
       student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) &&
       matchesYear &&
       matchesProgram &&
-      matchesTrack
+      matchesTrack &&
+      matchesSchoolTerm
     );
   });
 
@@ -97,6 +120,18 @@ export function MyStudents() {
                   />
                 </div>
                 <div className="flex space-x-4">
+                  <select
+                    className="select select-bordered"
+                    value={selectedSchoolTerm}
+                    onChange={(e) => setSelectedSchoolTerm(e.target.value)}
+                  >
+                    <option value="ALL">All School Terms</option>
+                    {schoolTerms.map((term) => (
+                      <option key={term.id} value={term.id}>
+                        {term.name}
+                      </option>
+                    ))}
+                  </select>
                   <select
                     className="select select-bordered"
                     value={yearFilter}
