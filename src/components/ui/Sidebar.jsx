@@ -56,6 +56,7 @@ export function Sidebar() {
       { name: "Manage Coaching", icon: FaUserGroup, path: "/manage-coaching" },
       { name: "Curriculum", icon: FaFile, path: "/curriculum" },
       { name: "Programs", icon: FaFileInvoice, path: "/programs" },
+      { name: "Summary", icon: FaFile, path: "/summary" },
       // { name: "Notifications", icon: FaBell, path: "/notifications" },
       {
         name: "Logout",
