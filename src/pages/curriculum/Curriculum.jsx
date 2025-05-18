@@ -117,6 +117,7 @@ export function Curriculum() {
 
     const formData = new FormData();
     formData.append("file", uploadFile);
+    formData.append("curriculumId", selectedCurriculumId);
 
     try {
       await axios.post(`${PORT}/courses/upload`, formData, {
@@ -152,6 +153,8 @@ export function Curriculum() {
       console.error("Error adding curriculum:", error);
     }
   };
+
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
 
   const handleDeleteCurriculum = async (id) => {
     if (!confirm("Are you sure you want to delete this curriculum?")) return;
@@ -297,6 +300,25 @@ export function Curriculum() {
                       </button>
                     </div>
                     <div className="flex gap-4 mb-4">
+                      <div className="form-control">
+                        <select
+                          className="select select-bordered"
+                          value={selectedCurriculumId}
+                          onChange={(e) => {
+                            setCurriculumFilter(e.target.value);
+                            setSelectedCurriculumId(e.target.value);
+                          }}
+                          required
+                        >
+                          <option value="All">All Curriculum</option>
+                          {curriculums.map((curr) => (
+                            <option key={curr.id} value={curr.id}>
+                              {curr.code}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                       <select
                         className="select select-bordered"
                         value={yearFilter}
